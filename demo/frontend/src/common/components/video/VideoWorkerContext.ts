@@ -425,7 +425,7 @@ export default class VideoWorkerContext {
     const frames = decodedVideo.frames;
 
     for (let frameIndex = 0; frameIndex < frames.length; ++frameIndex) {
-      await this._drawFrameImpl(form, frameIndex, true);
+      await this._drawFrameImpl(form, frameIndex, false); // not to have watermark
 
       const frame = frames[frameIndex];
       const videoFrame = new VideoFrame(canvas, {
