@@ -1,12 +1,14 @@
 import {ArrayBufferTarget, Muxer} from 'mp4-muxer';
+import {MP4ArrayBuffer} from 'mp4box';
 import {ImageFrame} from './VideoDecoder';
+
 export async function encode(
   width: number,
   height: number,
   numFrames: number,
   framesGenerator: AsyncGenerator<ImageFrame, unknown>,
   progressCallback?: (progress: number) => void,
-): Promise<ArrayBuffer> {
+): Promise<MP4ArrayBuffer> {
   let frameIndex = 0;
   const muxer = new Muxer({
     target: new ArrayBufferTarget(),
@@ -18,18 +20,23 @@ export async function encode(
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
     error: e => console.error(e),
   });
+
   videoEncoder.configure({
     codec: 'avc1.640029',
     width,
     height,
   });
+
   for await (const frame of framesGenerator) {
     progressCallback?.(frameIndex / numFrames);
     videoEncoder.encode(frame.bitmap, {keyFrame: frameIndex % 30 === 0}); // 每30帧一个关键帧
     frameIndex++;
   }
+
   await videoEncoder.flush();
   muxer.finalize();
+
   const {buffer} = muxer.target;
-  return buffer;
+
+  return buffer as MP4ArrayBuffer;
 }
