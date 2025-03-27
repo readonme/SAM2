@@ -31,8 +31,8 @@ export const ABOUT_URL = 'https://ai.meta.com/sam2';
 export const EMAIL_ADDRESS = 'segment-anything@meta.com';
 export const BLOG_URL = 'http://ai.meta.com/blog/sam2';
 
-export const VIDEO_API_ENDPOINT = 'http://81.68.129.183:7263';
-export const INFERENCE_API_ENDPOINT = 'http://81.68.129.183:7263';
+export const VIDEO_API_ENDPOINT = 'https://sam2-back.wisegotech.com';
+export const INFERENCE_API_ENDPOINT = 'https://sam2-back.wisegotech.com';
 
 export const demoObjectLimit = 3;
 
