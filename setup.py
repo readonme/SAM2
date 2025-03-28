@@ -41,7 +41,7 @@ EXTRA_PACKAGES = {
     "interactive-demo": [
         "Flask>=3.0.3",
         "Flask-Cors>=5.0.0",
-        "av>=13.0.0",
+        "av=13.1.0",
         "dataclasses-json>=0.6.7",
         "eva-decord>=0.6.1",
         "gunicorn>=23.0.0",
