@@ -1,5 +1,6 @@
 import {ArrayBufferTarget, Muxer} from 'mp4-muxer';
 import {MP4ArrayBuffer} from 'mp4box';
+import Logger from '../logger/Logger';
 import {ImageFrame} from './VideoDecoder';
 
 export async function encode(
@@ -18,7 +19,7 @@ export async function encode(
   });
   const videoEncoder = new VideoEncoder({
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-    error: e => console.error(e),
+    error: e => Logger.error(e),
   });
 
   videoEncoder.configure({

@@ -34,6 +34,7 @@ import {isPlayingAtom, isVideoLoadingAtom} from '@/demo/atoms';
 import {color} from '@/theme/tokens.stylex';
 import {useAtom} from 'jotai';
 import useResizeObserver from 'use-resize-observer';
+import UploadBackgroundButton from '../button/UploadBackgroundButton';
 import VideoLoadingOverlay from './VideoLoadingOverlay';
 import {
   StreamingStateUpdateEvent,
@@ -345,6 +346,7 @@ export default forwardRef<VideoRef, Props>(function Video(
           }}
         />
       </div>
+      <UploadBackgroundButton />
       {controls && (
         <div {...stylex.props(styles.controls)}>
           <Button

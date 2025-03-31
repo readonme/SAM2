@@ -52,18 +52,19 @@ export default function useVideoEffect() {
       video?.setEffect(name, index, options);
       const effect = Effects[name];
       const effectVariant = options?.variant ?? 0;
+      const effectNumVariants = options?.numVariants ?? effect.numVariants;
 
       if (index === EffectIndex.BACKGROUND) {
         setBackgroundEffect({
           name,
           variant: effectVariant,
-          numVariants: effect.numVariants,
+          numVariants: effectNumVariants,
         });
       } else {
         setHighlightEffect({
           name,
-          variant: options?.variant ?? 0,
-          numVariants: effect.numVariants,
+          variant: effectVariant,
+          numVariants: effectNumVariants,
         });
       }
     },

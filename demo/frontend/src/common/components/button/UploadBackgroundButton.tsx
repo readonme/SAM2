@@ -1,0 +1,94 @@
+import Logger from '@/common/logger/Logger';
+import {activeBackgroundEffectAtom} from '@/demo/atoms';
+import {fontSize} from '@/theme/tokens.stylex';
+import stylex from '@stylexjs/stylex';
+import {useAtomValue} from 'jotai';
+import {useState} from 'react';
+import {FileRejection, FileWithPath, useDropzone} from 'react-dropzone';
+import useToolbarTabs from '../toolbar/useToolbarTabs';
+import useVideoEffect from '../video/editor/useVideoEffect';
+import {EffectIndex} from '../video/effects/Effects';
+
+// 70 MB default max video upload size
+const MAX_FILE_SIZE_IN_MB = 70;
+const MAX_VIDEO_UPLOAD_SIZE = MAX_FILE_SIZE_IN_MB * 1024 ** 2;
+
+const styles = stylex.create({
+  uploadButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    padding: 8,
+    background: 'linear-gradient(to right bottom, #595FEF,#FB73A5)',
+    borderRadius: '10px',
+    color: 'white',
+    fontSize: fontSize['xs'],
+    cursor: 'pointer',
+    zIndex: 1,
+  },
+});
+
+export default function UploadBackgroundButton() {
+  const [tabIndex] = useToolbarTabs();
+  const [, setError] = useState<string | null>(null);
+  const activeEffect = useAtomValue(activeBackgroundEffectAtom);
+  const setEffect = useVideoEffect();
+  const {getRootProps, getInputProps} = useDropzone({
+    accept: {
+      'image/*': ['.jpeg', '.png', '.jpg'],
+    },
+    multiple: false,
+    maxFiles: 1,
+    onDrop: async (
+      acceptedFiles: FileWithPath[],
+      fileRejections: FileRejection[],
+    ) => {
+      setError(null);
+      // Check if any of the files (only 1 file allowed) is rejected. The
+      // rejected file has an error (e.g., 'file-too-large'). Rendering an
+      // appropriate message.
+      if (fileRejections.length > 0 && fileRejections[0].errors.length > 0) {
+        const code = fileRejections[0].errors[0].code;
+        if (code === 'file-too-large') {
+          setError(
+            `File too large. Try a video under ${MAX_FILE_SIZE_IN_MB} MB`,
+          );
+          return;
+        }
+      }
+      if (acceptedFiles.length === 0) {
+        setError('File not accepted. Please try again.');
+        return;
+      }
+      if (acceptedFiles.length > 1) {
+        setError('Too many files. Please try again with 1 file.');
+        return;
+      }
+      if (activeEffect.name === 'EraseBackground') {
+        setEffect('EraseBackground', EffectIndex.BACKGROUND, {
+          image: await createImageBitmap(acceptedFiles[0]),
+          numVariants: 4,
+          variant: 3,
+        });
+      }
+    },
+    onError: error => {
+      Logger.error(error);
+      setError('File not supported.');
+    },
+    maxSize: MAX_VIDEO_UPLOAD_SIZE,
+  });
+
+  return (
+    tabIndex === 1 &&
+    activeEffect.name === 'EraseBackground' && (
+      <div
+        className="cursor-pointer"
+        {...stylex.props(styles.uploadButton)}
+        {...getRootProps()}>
+        <input {...getInputProps()} />
+        Upload Background
+      </div>
+    )
+  );
+}
