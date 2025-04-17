@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import EffectVariantBadge from '@/common/components/effects/EffectVariantBadge';
 import ToolbarActionIcon from '@/common/components/toolbar/ToolbarActionIcon';
@@ -30,7 +32,7 @@ export default function HighlightEffects() {
   const activeEffectsGroup = useAtomValue(activeHighlightEffectGroupAtom);
 
   return (
-    <ToolbarSection title="Selected Objects" borderBottom={true}>
+    <ToolbarSection>
       {activeEffectsGroup.map(highlightEffect => {
         return (
           <ToolbarActionIcon

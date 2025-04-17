@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import useSelectedFrameHelper from '@/common/components/video/filmstrip/useSelectedFrameHelper';
 import {BaseTracklet, DatalessMask} from '@/common/tracker/Tracker';
@@ -23,13 +25,13 @@ const styles = stylex.create({
   container: {
     display: 'flex',
     alignItems: 'center',
-    gap: spacing[4],
+    gap: spacing[3],
     width: '100%',
   },
   trackletNameContainer: {
     width: w[12],
-    textAlign: 'center',
-    fontSize: '10px',
+    textAlign: 'left',
+    fontSize: '11px',
     color: 'white',
   },
   swimlaneContainer: {
@@ -38,9 +40,6 @@ const styles = stylex.create({
     display: 'flex',
     height: 12,
     marginVertical: '0.25rem' /* 4px */,
-    '@media screen and (max-width: 768px)': {
-      marginVertical: 0,
-    },
   },
   swimlane: {
     position: 'absolute',
@@ -65,10 +64,6 @@ const styles = stylex.create({
     cursor: 'pointer',
     width: 12,
     height: 12,
-    '@media screen and (max-width: 768px)': {
-      width: 8,
-      height: 8,
-    },
   },
 });
 
@@ -129,9 +124,6 @@ export default function TrackletSwimlane({tracklet, onSelectFrame}: Props) {
 
   return (
     <div {...stylex.props(styles.container)}>
-      <div {...stylex.props(styles.trackletNameContainer)}>
-        Object {tracklet.id + 1}
-      </div>
       <div {...stylex.props(styles.swimlaneContainer)}>
         <div
           {...stylex.props(styles.swimlane)}
@@ -159,12 +151,16 @@ export default function TrackletSwimlane({tracklet, onSelectFrame}: Props) {
               onClick={() => {
                 onSelectFrame?.(tracklet, index);
               }}
-              {...stylex.props(styles.segmentationPoint)}
+              className={`center f10 bold ${
+                stylex.props(styles.segmentationPoint).className
+              }`}
               style={{
                 left: Math.floor(selection.toPosition(index) - 4),
                 backgroundColor: tracklet.color,
-              }}
-            />
+                zIndex: 1,
+              }}>
+              {tracklet.id + 1}
+            </div>
           );
         })}
       </div>

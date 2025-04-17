@@ -1,5 +1,6 @@
 import Logger from '@/common/logger/Logger';
 import {activeBackgroundEffectAtom} from '@/demo/atoms';
+import {MAX_FILE_SIZE_IN_MB, MAX_VIDEO_UPLOAD_SIZE} from '@/demo/DemoConfig';
 import {fontSize} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {useAtomValue} from 'jotai';
@@ -8,10 +9,6 @@ import {FileRejection, FileWithPath, useDropzone} from 'react-dropzone';
 import useToolbarTabs from '../toolbar/useToolbarTabs';
 import useVideoEffect from '../video/editor/useVideoEffect';
 import {EffectIndex} from '../video/effects/Effects';
-
-// 70 MB default max video upload size
-const MAX_FILE_SIZE_IN_MB = 70;
-const MAX_VIDEO_UPLOAD_SIZE = MAX_FILE_SIZE_IN_MB * 1024 ** 2;
 
 const styles = stylex.create({
   uploadButton: {

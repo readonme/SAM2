@@ -12,14 +12,16 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {OBJECT_TOOLBAR_INDEX} from '@/common/components/toolbar/ToolbarConfig';
 import Tooltip from '@/common/components/Tooltip';
 import useVideo from '@/common/components/video/editor/useVideo';
 import {isPlayingAtom, streamingStateAtom, toolbarTabIndex} from '@/demo/atoms';
-import {PauseFilled, PlayFilledAlt} from '@carbon/icons-react';
 import {useAtomValue} from 'jotai';
-import {useCallback, useEffect} from 'react';
+import {useCallback} from 'react';
+import Icon from '../custom/Icon';
 
 export default function PlaybackButton() {
   const tabIndex = useAtomValue(toolbarTabIndex);
@@ -51,44 +53,15 @@ export default function PlaybackButton() {
     }
   }, [isDisabled, isPlaying, handlePlay, handlePause]);
 
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      const callback = {
-        KeyK: handleClick,
-      }[event.code];
-      if (callback != null) {
-        event.preventDefault();
-        callback();
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [handleClick]);
-
   return (
-    <Tooltip message={`${isPlaying ? 'Pause' : 'Play'} (k)`}>
-      <button
-        disabled={isDisabled}
-        className={`group !rounded-full !w-10 !h-10 flex items-center justify-center ${getButtonStyles(isDisabled)}`}
-        onClick={handleClick}>
-        {isPlaying ? (
-          <PauseFilled size={18} />
-        ) : (
-          <PlayFilledAlt
-            size={18}
-            className={!isDisabled ? 'group-hover:text-green-500' : ''}
-          />
-        )}
-      </button>
+    <Tooltip message={`${isPlaying ? 'Pause' : 'Play'}`}>
+      <Icon
+        className={`my10 ${isDisabled ? 'ne' : ''}`}
+        name={isPlaying ? 'pause' : 'play'}
+        hoveredName={isPlaying ? 'pause2' : 'play2'}
+        onClick={handleClick}
+        size={32}
+      />
     </Tooltip>
   );
-}
-
-function getButtonStyles(isDisabled: boolean): string {
-  if (isDisabled) {
-    return '!bg-gray-600 !text-graydark-700';
-  }
-  return `!text-black bg-white`;
 }

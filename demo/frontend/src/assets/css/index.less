@@ -1,0 +1,48 @@
+@font-face {
+  font-family: KH_Teka_TRIAL;
+  font-weight: normal;
+  src: url('@/assets/fonts/KHTekaTRIAL/KHTekaTRIAL-Regular.otf');
+}
+@font-face {
+  font-family: KH_Teka_TRIAL;
+  font-weight: bold;
+  src: url('@/assets/fonts/KHTekaTRIAL/KHTekaTRIAL-Medium.otf');
+}
+
+body {
+  line-height: 1.3;
+  font-family: KH_Teka_TRIAL;
+  color: white;
+}
+
+img[src=''],
+img:not([src]) {
+  opacity: 0;
+}
+
+.deva-sam2 {
+  @import './common.less';
+  @import './flexbox.less';
+  @import './chaos.less';
+
+  .label1 {
+    color: #ffffffcc;
+  }
+  .label2 {
+    color: #ffffff99;
+  }
+  .label3 {
+    color: #ffffff66;
+  }
+  .label4 {
+    color: #ffffff33;
+  }
+  .divider {
+    border-top: 1px solid #ffffff1f;
+    box-sizing: border-box;
+  }
+  .divider-v {
+    border-right: 1px solid #ffffff1f;
+    box-sizing: border-box;
+  }
+}

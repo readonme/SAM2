@@ -12,11 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 export const THEME_COLORS = [
-  '#3880F3',
-  '#F0AA19',
-  '#00D2BE',
+  '#17BEAA',
+  '#FF7B24',
+  '#3676FF',
   '#28D232',
   '#8773FF',
   '#00C8F0',

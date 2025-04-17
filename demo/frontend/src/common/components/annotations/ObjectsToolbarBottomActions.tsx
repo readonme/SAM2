@@ -12,15 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import ClearAllPointsInVideoButton from '@/common/components/annotations/ClearAllPointsInVideoButton';
 import CloseSessionButton from '@/common/components/annotations/CloseSessionButton';
 import TrackAndPlayButton from '@/common/components/button/TrackAndPlayButton';
 import ToolbarBottomActionsWrapper from '@/common/components/toolbar/ToolbarBottomActionsWrapper';
-import {
-  EFFECT_TOOLBAR_INDEX,
-  OBJECT_TOOLBAR_INDEX,
-} from '@/common/components/toolbar/ToolbarConfig';
+import {EFFECT_TOOLBAR_INDEX} from '@/common/components/toolbar/ToolbarConfig';
 import {streamingStateAtom} from '@/demo/atoms';
 import {useAtomValue} from 'jotai';
 
@@ -40,9 +38,6 @@ export default function ObjectsToolbarBottomActions({onTabChange}: Props) {
 
   return (
     <ToolbarBottomActionsWrapper>
-      <ClearAllPointsInVideoButton
-        onRestart={() => onTabChange(OBJECT_TOOLBAR_INDEX)}
-      />
       {isTrackingEnabled && <TrackAndPlayButton />}
       {streamingState === 'full' && (
         <CloseSessionButton onSessionClose={handleSwitchToEffectsTab} />

@@ -12,9 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import {ReactNode} from 'react';
-import ToolbarProgressChip from './ToolbarProgressChip';
+import {streamingStateAtom} from '@/demo/atoms';
+import {useAtomValue} from 'jotai';
+import {ReactNode, useMemo} from 'react';
+import {OBJECT_TOOLBAR_INDEX} from './ToolbarConfig';
+import useToolbarTabs from './useToolbarTabs';
 
 type Props = {
   title: string;
@@ -31,16 +36,27 @@ export default function ToolbarHeaderWrapper({
   showProgressChip = true,
   className,
 }: Props) {
+  const [toolbarIndex] = useToolbarTabs();
+  const streamingState = useAtomValue(streamingStateAtom);
+  const stepValue = useMemo(() => {
+    if (toolbarIndex === OBJECT_TOOLBAR_INDEX) {
+      return streamingState !== 'full' ? 1 : 2;
+    }
+    return 3;
+  }, [streamingState, toolbarIndex]);
+
   return (
     <div
-      className={`flex flex-col gap-2 p-8 border-b border-b-black ${className}`}>
-      <div className="flex items-center">
-        {showProgressChip && <ToolbarProgressChip />}
-        <h2 className="text-xl">{title}</h2>
+      className={`flex flex-col g16 p20 border-b border-b-black ${className}`}
+      style={{borderColor: '#FFFFFF1F'}}>
+      <div className="fbh fbac g8">
+        <h2 className="f20 bold">
+          {showProgressChip && `${stepValue}. `}
+          {title}
+        </h2>
       </div>
-
       {description != null && (
-        <div className="flex-1 text-gray-400">{description}</div>
+        <div className="flex-1 f14 label1">{description}</div>
       )}
       {bottomSection != null && bottomSection}
     </div>

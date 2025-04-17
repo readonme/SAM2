@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import SelectedFrameHelper from '@/common/components/video/filmstrip/SelectedFrameHelper';
 import {isPlayingAtom} from '@/demo/atoms';
@@ -40,7 +42,7 @@ const styles = stylex.create({
   filmstripWrapper: {
     position: 'relative',
     width: '100%',
-    height: '5rem' /* 80px */,
+    height: 108,
   },
   filmstrip: {
     position: 'absolute',
@@ -57,7 +59,7 @@ const styles = stylex.create({
   },
 });
 
-export const PADDING_TOP = 30;
+export const PADDING_TOP = 52;
 export const PADDING_BOTTOM = 0;
 
 export default function VideoFilmstrip() {
@@ -165,7 +167,6 @@ export default function VideoFilmstrip() {
       selectedFrameHelper,
       pointerPositionRef.current,
       scanLabel,
-      fpsRef.current,
     );
   }, [computeFrame, selectedFrameHelper]);
 

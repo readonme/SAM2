@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import TrackletsAnnotation from '@/common/components/annotations/TrackletsAnnotation';
 import useCloseSessionBeforeUnload from '@/common/components/session/useCloseSessionBeforeUnload';
@@ -32,24 +34,20 @@ import useVideo from '@/common/components/video/editor/useVideo';
 import InteractionLayer from '@/common/components/video/layers/InteractionLayer';
 import {PointsLayer} from '@/common/components/video/layers/PointsLayer';
 import LoadingStateScreen from '@/common/loading/LoadingStateScreen';
-import UploadLoadingScreen from '@/common/loading/UploadLoadingScreen';
-import useScreenSize from '@/common/screen/useScreenSize';
 import {SegmentationPoint} from '@/common/tracker/Tracker';
 import {
   activeTrackletObjectIdAtom,
   frameIndexAtom,
   isAddObjectEnabledAtom,
   isPlayingAtom,
-  isVideoLoadingAtom,
   pointsAtom,
   sessionAtom,
   streamingStateAtom,
   trackletObjectsAtom,
-  uploadingStateAtom,
   VideoData,
 } from '@/demo/atoms';
 import useSettingsContext from '@/settings/useSettingsContext';
-import {color, spacing} from '@/theme/tokens.stylex';
+import {color} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {useEffect, useState} from 'react';
@@ -63,17 +61,7 @@ const styles = stylex.create({
     width: '100%',
     borderColor: color['gray-800'],
     backgroundColor: color['gray-800'],
-    borderWidth: 8,
     borderRadius: 12,
-    '@media screen and (max-width: 768px)': {
-      // on mobile, we want to grow the editor container so that the editor
-      // fills the remaining vertical space between the navbar and bottom
-      // of the page
-      flexGrow: 1,
-      borderWidth: 0,
-      borderRadius: 0,
-      paddingBottom: spacing[4],
-    },
   },
   loadingScreenWrapper: {
     position: 'absolute',
@@ -93,8 +81,8 @@ type Props = {
 };
 
 export default function DemoVideoEditor({video: inputVideo}: Props) {
-  const {settings} = useSettingsContext();
   const video = useVideo();
+  const {settings} = useSettingsContext();
 
   const [isSessionStartFailed, setIsSessionStartFailed] =
     useState<boolean>(false);
@@ -110,14 +98,8 @@ export default function DemoVideoEditor({video: inputVideo}: Props) {
   const isAddObjectEnabled = useAtomValue(isAddObjectEnabledAtom);
   const streamingState = useAtomValue(streamingStateAtom);
   const isPlaying = useAtomValue(isPlayingAtom);
-  const isVideoLoading = useAtomValue(isVideoLoadingAtom);
-  const uploadingState = useAtomValue(uploadingStateAtom);
 
-  const [renderingError, setRenderingError] = useState<ErrorObject | null>(
-    null,
-  );
-
-  const {isMobile} = useScreenSize();
+  const [, setRenderingError] = useState<ErrorObject | null>(null);
 
   const [tabIndex] = useToolbarTabs();
   const {enqueueMessage} = useMessagesSnackbar();
@@ -255,20 +237,12 @@ export default function DemoVideoEditor({video: inputVideo}: Props) {
           />
         </>
       )}
-      {!isMobile && <MessagesSnackbar key="snackbar-layer" />}
+      <MessagesSnackbar key="snackbar-layer" />
     </>
   );
 
   return (
     <>
-      {(isVideoLoading || session === null) && !isSessionStartFailed && (
-        <div {...stylex.props(styles.loadingScreenWrapper)}>
-          <LoadingStateScreen
-            title="Loading demo..."
-            description="This may take a few moments, you're almost there!"
-          />
-        </div>
-      )}
       {isSessionStartFailed && (
         <div {...stylex.props(styles.loadingScreenWrapper)}>
           <LoadingStateScreen
@@ -280,26 +254,12 @@ export default function DemoVideoEditor({video: inputVideo}: Props) {
           />
         </div>
       )}
-      {isMobile && renderingError != null && (
-        <div {...stylex.props(styles.loadingScreenWrapper)}>
-          <LoadingStateScreen
-            title="Well, this is embarrassing..."
-            description="This demo is not optimized for your device. Please try again on a different device with a larger screen."
-            linkProps={{to: '..', label: 'Back to homepage'}}
-          />
-        </div>
-      )}
-      {uploadingState !== 'default' && (
-        <div {...stylex.props(styles.loadingScreenWrapper)}>
-          <UploadLoadingScreen />
-        </div>
-      )}
       <div {...stylex.props(styles.container)}>
         <VideoEditor
           video={inputVideo}
           layers={layers}
           loading={session == null}>
-          <div className="bg-graydark-800 w-full">
+          <div className="bg-graydark-800 w-full px20">
             <VideoFilmstripWithPlayback />
             <TrackletsAnnotation />
           </div>

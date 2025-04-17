@@ -12,12 +12,24 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import useMessagesSnackbar from '@/common/components/snackbar/useDemoMessagesSnackbar';
 import useVideo from '@/common/components/video/editor/useVideo';
 import {activeTrackletObjectIdAtom, labelTypeAtom} from '@/demo/atoms';
-import {Add} from '@carbon/icons-react';
+import stylex from '@stylexjs/stylex';
 import {useSetAtom} from 'jotai';
+import Icon from '../custom/Icon';
+
+const styles = stylex.create({
+  button: {
+    border: '1px solid #FFFFFF33',
+    ':hover': {
+      background: '#FFFFFF14',
+    },
+  },
+});
 
 export default function AddObjectButton() {
   const video = useVideo();
@@ -37,12 +49,10 @@ export default function AddObjectButton() {
   return (
     <div
       onClick={addObject}
-      className="group flex justify-start mx-4 px-4 bg-transparent text-white !rounded-xl border-none cursor-pointer">
-      <div className="flex gap-6 items-center">
-        <div className=" group-hover:bg-graydark-700 border border-white relative h-12 w-12 md:w-20 md:h-20 shrink-0 rounded-lg flex items-center justify-center">
-          <Add size={36} className="group-hover:text-white text-gray-300" />
-        </div>
-        <div className="font-medium text-base">Add another object</div>
+      className={`hand br10 mx16 ${stylex.props(styles.button).className}`}>
+      <div className="p24 fbh fbac g12">
+        <Icon name="add2" size={18} />
+        <p className="f16">Add another object</p>
       </div>
     </div>
   );

@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {right, top} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
@@ -21,13 +23,12 @@ const styles = stylex.create({
     position: 'absolute',
     top: top[1],
     right: right[1],
-    backgroundColor: '#280578',
-    color: '#D2D2FF',
+    backgroundColor: '#0F111599',
     fontVariantNumeric: 'tabular-nums',
     paddingHorizontal: 4,
     paddingVertical: 1,
     fontSize: 9,
-    borderRadius: 6,
+    borderRadius: 5,
     fontWeight: 'bold',
   },
 });

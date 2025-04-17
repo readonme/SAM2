@@ -12,19 +12,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import {InformationFilled} from '@carbon/icons-react';
+import Icon from '../custom/Icon';
 
 export default function LimitNotice() {
   return (
-    <div className="mt-6 gap-3 mx-6 flex items-center text-gray-400">
+    <div className="g8 mx24 flex items-center label2">
       <div>
-        <InformationFilled size={32} />
+        <Icon name="info" size={20} style={{opacity: 0.6}} />
       </div>
-      <div className="text-sm leading-snug">
-        In this demo, you can track up to 3 objects, even though the SAM 2 model
-        does not have a limit.
-      </div>
+      <div className="text-sm leading-snug">You can track up to 3 objects</div>
     </div>
   );
 }

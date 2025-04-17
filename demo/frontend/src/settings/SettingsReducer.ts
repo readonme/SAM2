@@ -21,7 +21,7 @@ export type Settings = {
 };
 
 // Key used to store the settings in the browser's local storage.
-export const SAM2_SETTINGS_KEY = 'SAM2_SETTINGS_KEY';
+export const SAM2_SETTINGS_KEY = 'VBR_SETTINGS_KEY';
 
 export type Action =
   | {type: 'load-state'}

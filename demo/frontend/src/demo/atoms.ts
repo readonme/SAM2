@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {
   defaultMessageMap,
@@ -58,7 +60,7 @@ export const sessionAtom = atom<Session | null>(null);
 // STREAMING/PLAYBACK
 // #####################
 
-export const isVideoLoadingAtom = atom<boolean>(false);
+export const isVideoLoadingAtom = atom<boolean>(true);
 
 export const streamingStateAtom = atom<StreamingState>('none');
 

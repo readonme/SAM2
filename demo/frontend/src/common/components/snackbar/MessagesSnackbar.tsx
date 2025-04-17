@@ -12,13 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import useScreenSize from '@/common/screen/useScreenSize';
-import {color, gradients} from '@/theme/tokens.stylex';
-import {Close} from '@carbon/icons-react';
+import {color} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {useAtomValue} from 'jotai';
 import {Loading, RadialProgress} from 'react-daisyui';
+import Icon from '../custom/Icon';
 import {messageAtom} from './snackbarAtoms';
 import useExpireMessage from './useExpireMessage';
 import useMessagesSnackbar from './useMessagesSnackbar';
@@ -29,45 +30,32 @@ const styles = stylex.create({
     top: '8px',
     right: '8px',
   },
-  mobileContainer: {
-    position: 'absolute',
-    bottom: '8px',
-    left: '8px',
-    right: '8px',
-  },
   messageContainer: {
-    padding: '20px 20px',
+    padding: 16,
     color: '#FFF',
     borderRadius: '8px',
     fontSize: '0.9rem',
     maxWidth: 400,
-    border: '2px solid transparent',
-    background: gradients['yellowTeal'],
+    background: '#303339',
   },
   messageWarningContainer: {
     background: '#FFDC32',
     color: color['gray-900'],
   },
-  messageContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
   progress: {
     flexShrink: 0,
     color: 'rgba(255, 255, 255, 0.1)',
   },
-  closeColumn: {
-    display: 'flex',
-    alignSelf: 'stretch',
-    alignItems: 'start',
+  button: {
+    borderRadius: 8,
+    background: 'white',
+    color: 'black',
   },
 });
 
 export default function MessagesSnackbar() {
   const message = useAtomValue(messageAtom);
   const {clearMessage} = useMessagesSnackbar();
-  const {isMobile} = useScreenSize();
 
   useExpireMessage();
 
@@ -76,28 +64,28 @@ export default function MessagesSnackbar() {
   }
 
   const closeIcon = (
-    <Close
-      size={24}
-      color={message.type === 'warning' ? color['gray-900'] : 'white'}
-      opacity={1}
-      className="z-20 hover:text-gray-300 color-white cursor-pointer !opacity-100 shrink-0"
-      onClick={clearMessage}
-    />
+    <div
+      className={`py6 px12 hand ${stylex.props(styles.button).className}`}
+      onClick={clearMessage}>
+      OK
+    </div>
   );
 
   return (
-    <div
-      {...stylex.props(isMobile ? styles.mobileContainer : styles.container)}>
+    <div {...stylex.props(styles.container)}>
       <div
         {...stylex.props(
           styles.messageContainer,
           message.type === 'warning' && styles.messageWarningContainer,
         )}>
-        <div {...stylex.props(styles.messageContent)}>
-          <div>{message.text}</div>
-          {message.type === 'loading' && <Loading size="xs" variant="dots" />}
+        <div className="fbv fbae g12">
+          <div className="fbh g8">
+            {message.type === 'loading' && <Loading size="xs" variant="dots" />}
+            {message.type === 'info' && <Icon name="info" size={16} />}
+            {message.text}
+          </div>
           {message.showClose && (
-            <div {...stylex.props(styles.closeColumn)}>
+            <div>
               {message.expire ? (
                 <RadialProgress
                   value={message.progress * 100}

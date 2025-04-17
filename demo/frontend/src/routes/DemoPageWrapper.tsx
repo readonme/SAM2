@@ -12,11 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
+import '@/assets/css/index.less';
 import LoadingStateScreen from '@/common/loading/LoadingStateScreen';
-import DemoPage from '@/routes/DemoPage';
 import stylex from '@stylexjs/stylex';
 import {isFirefox} from 'react-device-detect';
+import MenuWrapper from './MenuWrapper';
 
 const styles = stylex.create({
   link: {
@@ -83,5 +86,9 @@ export default function DemoPageWrapper() {
     );
   }
 
-  return <DemoPage />;
+  return (
+    <div className="deva-sam2">
+      <MenuWrapper />
+    </div>
+  );
 }

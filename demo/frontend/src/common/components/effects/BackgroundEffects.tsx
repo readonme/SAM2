@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {backgroundEffects} from '@/common/components/effects/EffectsUtils';
 import EffectVariantBadge from '@/common/components/effects/EffectVariantBadge';
@@ -27,7 +29,7 @@ export default function BackgroundEffects() {
   const activeEffect = useAtomValue(activeBackgroundEffectAtom);
 
   return (
-    <ToolbarSection title="Background" borderBottom={false}>
+    <ToolbarSection>
       {backgroundEffects.map(backgroundEffect => {
         return (
           <ToolbarActionIcon

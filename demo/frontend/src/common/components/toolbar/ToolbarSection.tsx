@@ -12,11 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {PropsWithChildren} from 'react';
 
 type Props = PropsWithChildren<{
-  title: string;
+  title?: string;
   borderBottom?: boolean;
 }>;
 
@@ -26,9 +28,9 @@ export default function ToolbarSection({
   borderBottom = false,
 }: Props) {
   return (
-    <div className={`p-6 ${borderBottom && 'border-b border-black'}`}>
-      <div className="font-bold ml-2">{title}</div>
-      <div className="grid grid-cols-4 gap-2 mt-2 md:mt-6">{children}</div>
+    <div className={`p-5 ${borderBottom && 'border-b border-black'}`}>
+      {title && <div className="font-bold ml-2">{title}</div>}
+      <div className="grid grid-cols-4 gap-4 mt-2">{children}</div>
     </div>
   );
 }

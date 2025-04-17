@@ -12,35 +12,165 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
+import ResetButton from '@/common/components/button/ResetButton';
+import Icon from '@/common/components/custom/Icon';
+import useRestartSession from '@/common/components/session/useRestartSession';
+import {OBJECT_TOOLBAR_INDEX} from '@/common/components/toolbar/ToolbarConfig';
+import useToolbarTabs from '@/common/components/toolbar/useToolbarTabs';
+import useVideoEffect from '@/common/components/video/editor/useVideoEffect';
+import {EffectIndex} from '@/common/components/video/effects/Effects';
+import LoadingStateScreen from '@/common/loading/LoadingStateScreen';
+import {
+  isFirstClickMadeAtom,
+  isVideoLoadingAtom,
+  sessionAtom,
+  streamingStateAtom,
+} from '@/demo/atoms';
 import {spacing} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
-import {PropsWithChildren} from 'react';
+import {useAtomValue} from 'jotai';
+import {PropsWithChildren, useCallback, useMemo} from 'react';
+import {useNavigate} from 'react-router-dom';
 
 type Props = PropsWithChildren;
 
 const styles = stylex.create({
   container: {
     width: '100%',
-    height: '100%',
+    height: 'calc(100% - 52px)',
     display: 'flex',
     justifyContent: 'stretch',
     alignItems: 'stretch',
-    gap: spacing[12],
-    paddingHorizontal: spacing[12],
-    paddingVertical: spacing[4],
-    '@media screen and (max-width: 768px)': {
-      display: 'flex',
-      flexDirection: 'column-reverse',
-      gap: 0,
-      marginTop: spacing[0],
-      marginBottom: spacing[0],
-      paddingHorizontal: spacing[0],
-      paddingBottom: spacing[0],
-    },
+    gap: spacing[3],
+  },
+  badge: {
+    width: 24,
+    height: 24,
+    flexShrink: 0,
+    background: '#FFFFFF1F',
+    color: '#FFFFFF99',
+    fontWeight: 'bold',
+    borderRadius: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeActive: {
+    background: '#44DAC8',
+    color: '#10151A',
+  },
+  divider: {
+    borderBottom: '1px solid #FFFFFF1F',
+    maxWidth: 64,
+    minWidth: 12,
+    flex: 1,
+  },
+  dividerActive: {
+    borderBottom: '1px solid #FFFFFF',
   },
 });
 
 export default function DemoPageLayout({children}: Props) {
-  return <div {...stylex.props(styles.container)}>{children}</div>;
+  const navigate = useNavigate();
+  const {restartSession, isLoading} = useRestartSession();
+  const onBack = () => {
+    navigate(
+      {pathname: location.pathname, search: location.search},
+      {state: {video: undefined}},
+    );
+  };
+  const [toolbarIndex] = useToolbarTabs();
+  const streamingState = useAtomValue(streamingStateAtom);
+  const isFirstClickMade = useAtomValue(isFirstClickMadeAtom);
+  const stepValue = useMemo(() => {
+    if (!isFirstClickMade) {
+      return 0;
+    }
+    if (toolbarIndex === OBJECT_TOOLBAR_INDEX) {
+      return streamingState !== 'full' ? 1 : 2;
+    }
+    return 3;
+  }, [isFirstClickMade, streamingState, toolbarIndex]);
+  const setEffect = useVideoEffect();
+  const [, setTabIndex] = useToolbarTabs();
+  const reset = useCallback(() => {
+    setEffect('Original', EffectIndex.BACKGROUND, {variant: 0});
+    setEffect('Overlay', EffectIndex.HIGHLIGHT, {variant: 0});
+    setTabIndex(OBJECT_TOOLBAR_INDEX);
+  }, [setEffect, setTabIndex]);
+  const isVideoLoading = useAtomValue(isVideoLoadingAtom);
+  const session = useAtomValue(sessionAtom);
+
+  return (
+    <div className="fbv pt24 pb20 px16 g16 wh100p pr">
+      {(isVideoLoading || session === null) && (
+        <div className="pa wh100p" style={{zIndex: 1, left: 0, top: 0}}>
+          <LoadingStateScreen
+            title="Loading demo..."
+            description="This may take a few moments, you're almost there!"
+          />
+        </div>
+      )}
+      <div className="fbh fbac g50">
+        <Icon name="back" size={32} onClick={onBack} />
+        <div className="fb1 fbh fbac g12 f15">
+          {stepValue > 0 && (
+            <>
+              <div className="fbh fbac g6">
+                <div {...stylex.props(styles.badge, styles.badgeActive)}>1</div>
+                <p>Select Objects</p>
+              </div>
+              <div
+                {...stylex.props(
+                  styles.divider,
+                  stepValue > 1 && styles.dividerActive,
+                )}
+              />
+              <div className="fbh fbac g6">
+                <div
+                  {...stylex.props(
+                    styles.badge,
+                    stepValue >= 2 && styles.badgeActive,
+                  )}>
+                  2
+                </div>
+                <p>Review tracked objects</p>
+              </div>
+              <div
+                {...stylex.props(
+                  styles.divider,
+                  stepValue > 2 && styles.dividerActive,
+                )}
+              />
+              <div className="fbh fbac g6">
+                <div
+                  {...stylex.props(
+                    styles.badge,
+                    stepValue >= 3 && styles.badgeActive,
+                  )}>
+                  3
+                </div>
+                <p>Add effects</p>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="fbh fbac g28">
+          <div className="fbh fbac g8">
+            <Icon name="query" size={24} />
+            <p className="f14">How to use？</p>
+          </div>
+          <ResetButton
+            onClick={() => restartSession(reset)}
+            isLoading={isLoading}
+            title="Start over"
+          />
+        </div>
+      </div>
+      <div {...stylex.props(styles.container)}>{children}</div>
+    </div>
+  );
 }

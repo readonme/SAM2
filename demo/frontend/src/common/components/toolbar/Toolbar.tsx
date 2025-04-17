@@ -12,13 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import useListenToStreamingState from '@/common/components/toolbar/useListenToStreamingState';
 import useToolbarTabs from '@/common/components/toolbar/useToolbarTabs';
 import useVideo from '@/common/components/video/editor/useVideo';
 import useVideoEffect from '@/common/components/video/editor/useVideoEffect';
 import {EffectIndex} from '@/common/components/video/effects/Effects';
-import useScreenSize from '@/common/screen/useScreenSize';
 import {
   codeEditorOpenedAtom,
   isPlayingAtom,
@@ -27,7 +28,6 @@ import {
 import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {useCallback, useEffect} from 'react';
 import DesktopToolbar from './DesktopToolbar';
-import MobileToolbar from './MobileToolbar';
 import {OBJECT_TOOLBAR_INDEX} from './ToolbarConfig';
 
 export default function Toolbar() {
@@ -36,7 +36,6 @@ export default function Toolbar() {
   const setIsPlaying = useSetAtom(isPlayingAtom);
   const [isStreaming, setIsStreaming] = useAtom(isStreamingAtom);
   const codeEditorOpened = useAtomValue(codeEditorOpenedAtom);
-  const {isMobile} = useScreenSize();
   const setEffect = useVideoEffect();
 
   const resetEffects = useCallback(() => {
@@ -86,9 +85,5 @@ export default function Toolbar() {
     return null;
   }
 
-  return isMobile ? (
-    <MobileToolbar tabIndex={tabIndex} onTabChange={handleTabChange} />
-  ) : (
-    <DesktopToolbar tabIndex={tabIndex} onTabChange={handleTabChange} />
-  );
+  return <DesktopToolbar tabIndex={tabIndex} onTabChange={handleTabChange} />;
 }

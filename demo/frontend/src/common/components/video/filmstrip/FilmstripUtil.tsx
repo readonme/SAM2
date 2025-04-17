@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {CanvasForm, CanvasSpace, Font, Group, Pt, Triangle} from 'pts';
 import SelectedFrameHelper from './SelectedFrameHelper';
@@ -57,7 +59,6 @@ export function drawMarker(
   selectedFrameHelper: SelectedFrameHelper,
   pointerPosition: Pt | null,
   scanLabel: string | false,
-  fps: number,
 ) {
   if (space == undefined || form?.ctx == undefined) {
     return;
@@ -68,9 +69,10 @@ export function drawMarker(
     [0, space.height - PADDING_BOTTOM],
   ]);
 
-  const currentMarker = marker
-    .clone()
-    .add(Math.max(5, selectedFrameHelper.position), 0);
+  const currentMarker = Group.fromArray([
+    [0, 6],
+    [0, space.height - PADDING_BOTTOM],
+  ]).add(Math.max(0, selectedFrameHelper.position), 0);
 
   const getTextPosition = (label: string, marker: Group) => {
     const textWidth = form.ctx.measureText(label).width;
@@ -82,21 +84,12 @@ export function drawMarker(
 
   // draw current marker
   form
-    .strokeOnly('#00000066', 5)
-    .line(currentMarker)
     .strokeOnly('#fff', 1)
     .line(currentMarker)
     .fill('#000')
     .polygon(
       Triangle.fromCenter(currentMarker[0].$add(0, 10), 5).rotate2D(Math.PI),
     );
-
-  // draw text
-  const frameLabel = getTimeFromFrame(selectedFrameHelper.index, fps);
-  form
-    .font(new Font(12, 'monospace'))
-    .fillOnly('#fff')
-    .text(getTextPosition(frameLabel, currentMarker), frameLabel);
 
   // draw scanning ghost marker
   if (
@@ -108,8 +101,8 @@ export function drawMarker(
     form.strokeOnly('#ffffff66', 5).line(scanMarker);
 
     form
-      .font(new Font(12, 'monospace'))
-      .fillOnly('#8595A4')
+      .font(new Font(10, 'monospace'))
+      .fillOnly('white')
       .text(getTextPosition(scanLabel, scanMarker), scanLabel);
   }
 }

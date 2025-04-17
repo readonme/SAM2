@@ -12,7 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 export const OBJECT_TOOLBAR_INDEX = 0;
 export const EFFECT_TOOLBAR_INDEX = 1;
-export const MORE_OPTIONS_TOOLBAR_INDEX = 2;

@@ -12,37 +12,86 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import PlaybackButton from '@/common/components/button/PlaybackButton';
 import VideoFilmstrip from '@/common/components/video/filmstrip/VideoFilmstrip';
-import {spacing, w} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
+import {useCallback, useMemo} from 'react';
+import useVideo from './editor/useVideo';
+import {generateVideoTicks} from './VideoTicks';
 
 const styles = stylex.create({
-  container: {
-    display: 'flex',
-    alignItems: 'end',
-    gap: spacing[4],
-    paddingHorizontal: spacing[4],
-    width: '100%',
-  },
-  playbackButtonContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: w[12],
-    height: w[12],
+  controlContainer: {
+    borderBottom: '1px solid #0F1115',
   },
   filmstripContainer: {
     flexGrow: 1,
   },
+  tickMinor: {
+    borderLeft: '1px solid #FFFFFF33',
+    height: 3,
+    top: 18,
+  },
+  tickMajor: {
+    borderLeft: '1px solid #FFFFFF66',
+    height: 11,
+    top: 14,
+  },
 });
 
 export default function VideoFilmstripWithPlayback() {
+  const video = useVideo();
+  const compute = useCallback(
+    (frame: number) =>
+      video?.fps
+        ? [
+            (frame / video.fps).toFixed(0).padStart(2, '0'),
+            (frame % video.fps).toFixed(0).padStart(2, '0'),
+          ].join(':')
+        : '00:00',
+    [video?.fps],
+  );
+  const ticks = useMemo(() => {
+    return video?.fps
+      ? generateVideoTicks(video.numberOfFrames, video.fps)
+      : [];
+  }, [video?.fps, video?.numberOfFrames]);
+
   return (
-    <div {...stylex.props(styles.container)}>
-      <div {...stylex.props(styles.playbackButtonContainer)}>
+    <div className="fbv">
+      <div
+        className={`fbh fbac fbjc g16 -mx-20 ${stylex.props(styles.controlContainer).className}`}>
         <PlaybackButton />
+        <div className="f10 fbh fbac g2">
+          <span style={{width: 26}}>
+            {video ? `${compute(video.frame)}` : '00:00'}
+          </span>
+          /
+          <span className="label4">
+            {video ? `${compute(video.numberOfFrames)}` : '00:00'}
+          </span>
+        </div>
+      </div>
+      <div className="fbh fbac pr">
+        {ticks?.map((tick, i) => (
+          <div
+            key={tick.time}
+            style={{left: `${tick.progress * 100}%`}}
+            className={`pa fbh fbac ${
+              stylex.props(tick.isMajor ? styles.tickMajor : styles.tickMinor)
+                .className
+            }`}>
+            {tick.label && (
+              <div
+                className="f10 label3 pa px4"
+                style={{[i === 0 ? 'left' : 'right']: 0}}>
+                {tick.label}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
       <div {...stylex.props(styles.filmstripContainer)}>
         <VideoFilmstrip />
