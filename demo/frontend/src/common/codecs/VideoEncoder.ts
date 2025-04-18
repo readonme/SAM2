@@ -47,6 +47,8 @@ export async function encode(
 
   videoEncoder.configure({
     codec: 'avc1.640029',
+    bitrate: getHighQualityBitrateConfig(width, height),
+    bitrateMode: 'constant',
     width,
     height,
   });
@@ -78,4 +80,16 @@ export async function encode(
   muxer.finalize();
 
   return muxer.target.buffer as MP4ArrayBuffer;
+}
+
+function getHighQualityBitrateConfig(
+  width: number,
+  height: number,
+  fps: number = 30,
+) {
+  // 0.1 ~ 0.2 bits/pixel/frame（高质量）
+  const bitsPerPixel = 0.15;
+  const bitrate = width * height * fps * bitsPerPixel;
+
+  return Math.floor(bitrate);
 }

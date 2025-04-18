@@ -55,22 +55,20 @@ export function HomePage() {
     {},
   );
 
-  return isUploading ? (
-    <div>
-      <LoadingStateScreen
-        title="Uploading video..."
-        description="Sit tight while we upload your video."
-      />
-    </div>
-  ) : error ? (
-    <div>
-      <LoadingStateScreen
-        title="Did we just break the internet?"
-        description={error}
-      />
-    </div>
-  ) : (
-    <div className="p24 fbv g24">
+  return (
+    <div className="fbv g24 p24">
+      {isUploading && (
+        <LoadingStateScreen
+          title="Uploading video..."
+          description="Sit tight while we upload your video."
+        />
+      )}
+      {error && (
+        <LoadingStateScreen
+          title="Did we just break the internet?"
+          description={error}
+        />
+      )}
       <div className="fbv g12">
         <p className="f16 bold">Tutorial</p>
         <MediaDisplay

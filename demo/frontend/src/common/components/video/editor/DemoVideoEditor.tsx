@@ -63,17 +63,6 @@ const styles = stylex.create({
     backgroundColor: color['gray-800'],
     borderRadius: 12,
   },
-  loadingScreenWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    background: 'white',
-    overflow: 'hidden',
-    overflowY: 'auto',
-    zIndex: 999,
-  },
 });
 
 type Props = {
@@ -244,15 +233,13 @@ export default function DemoVideoEditor({video: inputVideo}: Props) {
   return (
     <>
       {isSessionStartFailed && (
-        <div {...stylex.props(styles.loadingScreenWrapper)}>
-          <LoadingStateScreen
-            title="Did we just break the internet?"
-            description={
-              <>Uh oh, it looks like there was an issue starting a session.</>
-            }
-            linkProps={{to: '..', label: 'Back to homepage'}}
-          />
-        </div>
+        <LoadingStateScreen
+          title="Did we just break the internet?"
+          description={
+            <>Uh oh, it looks like there was an issue starting a session.</>
+          }
+          linkProps={{to: '..', label: 'Back to homepage'}}
+        />
       )}
       <div {...stylex.props(styles.container)}>
         <VideoEditor

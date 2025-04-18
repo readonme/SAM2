@@ -58,14 +58,14 @@ export default function MenuWrapper() {
           ))}
         </div>
       </div>
-      <div className="flex flex-1 flex-col h-full overflow-auto">
+      <div className="flex flex-1 flex-col h-full oa">
         {active === 'home' && (
-          <>
-            <div style={{display: state?.video ? 'none' : 'block'}}>
+          <div className="fb1 pr">
+            <div style={{display: state?.video ? 'none' : 'flex'}}>
               <HomePage />
             </div>
             {state?.video && <DemoPage />}
-          </>
+          </div>
         )}
       </div>
     </div>

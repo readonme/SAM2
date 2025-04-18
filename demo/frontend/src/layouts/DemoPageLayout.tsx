@@ -105,14 +105,12 @@ export default function DemoPageLayout({children}: Props) {
   const session = useAtomValue(sessionAtom);
 
   return (
-    <div className="fbv pt24 pb20 px16 g16 wh100p pr">
+    <div className="fbv pt24 pb20 px16 g16 wh100p">
       {(isVideoLoading || session === null) && (
-        <div className="pa wh100p" style={{zIndex: 1, left: 0, top: 0}}>
-          <LoadingStateScreen
-            title="Loading demo..."
-            description="This may take a few moments, you're almost there!"
-          />
-        </div>
+        <LoadingStateScreen
+          title="Loading demo..."
+          description="This may take a few moments, you're almost there!"
+        />
       )}
       <div className="fbh fbac g50">
         <Icon name="back" size={32} onClick={onBack} />

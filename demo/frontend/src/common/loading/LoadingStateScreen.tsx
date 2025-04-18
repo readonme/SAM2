@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import introVideo from '@/assets/videos/sam2_720px_dark.mp4';
 import introVideoPoster from '@/assets/videos/sam2_video_poster.png';
@@ -24,7 +26,12 @@ import {Link} from 'react-router-dom';
 const styles = stylex.create({
   container: {
     backgroundColor: '#000',
+    position: 'absolute',
     minHeight: '100%',
+    width: '100%',
+    zIndex: 999,
+    left: 0,
+    top: 0,
   },
   content: {
     display: 'flex',
