@@ -21,14 +21,20 @@ import Logger from '../logger/Logger';
 import {DecodedAudio, ImageFrame} from './VideoDecoder';
 
 export async function encode(
-  width: number,
-  height: number,
+  originWidth: number,
+  originHeight: number,
   numFrames: number,
   framesGenerator: AsyncGenerator<ImageFrame, unknown>,
   audio?: DecodedAudio, // 允许 audio 为空
   progressCallback?: (progress: number) => void,
 ): Promise<MP4ArrayBuffer> {
   let frameIndex = 0;
+  const {width, height} = scaleResolutionToFitLimit(
+    originWidth,
+    originHeight,
+    2560,
+    2560,
+  );
   const muxer = new Muxer({
     target: new ArrayBufferTarget(),
     fastStart: 'in-memory',
@@ -44,13 +50,16 @@ export async function encode(
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
     error: e => Logger.error(e),
   });
-
-  videoEncoder.configure({
-    codec: 'avc1.640029',
+  const videoConfigWithoutCodec: Omit<VideoEncoderConfig, 'codec'> = {
     bitrate: getHighQualityBitrateConfig(width, height),
     bitrateMode: 'constant',
     width,
     height,
+  };
+
+  videoEncoder.configure({
+    ...videoConfigWithoutCodec,
+    codec: await getBestSupportedAVCCodec(videoConfigWithoutCodec),
   });
 
   for await (const frame of framesGenerator) {
@@ -92,4 +101,41 @@ function getHighQualityBitrateConfig(
   const bitrate = width * height * fps * bitsPerPixel;
 
   return Math.floor(bitrate);
+}
+
+async function getBestSupportedAVCCodec(
+  config: Omit<VideoEncoderConfig, 'codec'>,
+) {
+  const candidates = [
+    'avc1.640032',
+    'avc1.640029',
+    'avc1.4D401E',
+    'avc1.42E01E',
+  ];
+  for (const codec of candidates) {
+    const result = await VideoEncoder.isConfigSupported({
+      ...config,
+      codec,
+    });
+    if (result.supported) {
+      return codec;
+    }
+  }
+  throw Error('Video Encoder Not Supported!');
+}
+
+function scaleResolutionToFitLimit(
+  width: number,
+  height: number,
+  maxWidth: number,
+  maxHeight: number,
+): {width: number; height: number} {
+  const widthRatio = maxWidth / width;
+  const heightRatio = maxHeight / height;
+  const scale = Math.min(1, widthRatio, heightRatio);
+
+  return {
+    width: Math.round(width * scale),
+    height: Math.round(height * scale),
+  };
 }

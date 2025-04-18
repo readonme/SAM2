@@ -13,6 +13,8 @@ const styles = stylex.create({
     height: 438,
     borderRadius: 8,
     overflow: 'hidden',
+    objectFit: 'contain',
+    background: 'black',
   },
 });
 

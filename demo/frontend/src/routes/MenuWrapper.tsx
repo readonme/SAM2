@@ -34,14 +34,11 @@ export default function MenuWrapper() {
           className={`right-4 top-6 ${expandMenu ? 'pa' : 'my28'}`}
           onClick={() => setExpandMenu(!expandMenu)}
         />
-        <div
-          className={`flex flex-1 flex-col gap-1 overflow-auto ${
-            expandMenu ? 'py-[28px] pl-4' : 'items-center'
-          }`}>
+        <div className={`fbv g4 ${expandMenu ? 'py28 pl-4' : 'items-center'}`}>
           {pathname.map(name => (
             <div
               key={name}
-              className={expandMenu ? '' : 'tooltip oh'}
+              className={expandMenu ? '' : 'tooltip'}
               data-tip={nameDict[name]}>
               <div
                 className={`fbh fbac g8 p10 br8 hand ${
