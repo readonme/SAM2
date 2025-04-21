@@ -23,7 +23,12 @@ export default function MenuWrapper() {
           expandMenu ? 'w-[232px]' : 'w-[72px] fbac'
         }`}>
         {expandMenu ? (
-          <Image className="ml26" name="logo2" width={102} height={24} />
+          <div className="fbv fbac g12">
+            <Image name="logo" width={32} height={32} />
+            <p className={`f14 bold ${stylex.props(styles.logo).className}`}>
+              VIDEO BACKGROUND REMOVER
+            </p>
+          </div>
         ) : (
           <Image name="logo" width={24} height={24} />
         )}
@@ -38,7 +43,7 @@ export default function MenuWrapper() {
           {pathname.map(name => (
             <div
               key={name}
-              className={expandMenu ? '' : 'tooltip'}
+              className={expandMenu ? '' : 'tooltip tooltip-right'}
               data-tip={nameDict[name]}>
               <div
                 className={`fbh fbac g8 p10 br8 hand ${
@@ -84,5 +89,9 @@ const styles = stylex.create({
   menuItemActive: {
     backgroundColor: '#ffffff14',
     opacity: 1,
+  },
+  logo: {
+    fontFamily: 'Syncopate',
+    textAlign: 'center',
   },
 });

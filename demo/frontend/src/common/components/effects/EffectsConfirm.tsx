@@ -9,8 +9,8 @@ import useVideo from '../video/editor/useVideo';
 
 const styles = stylex.create({
   videoContainer: {
-    width: 771,
-    height: 438,
+    width: 768,
+    height: 432,
     borderRadius: 8,
     overflow: 'hidden',
     objectFit: 'contain',

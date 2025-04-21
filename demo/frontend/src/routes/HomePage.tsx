@@ -1,4 +1,3 @@
-import video from '@/assets/videos/sam2_720px_dark.mp4';
 import {MediaDisplay} from '@/common/components/custom/Asset';
 import Icon from '@/common/components/custom/Icon';
 import LoadingStateScreen from '@/common/loading/LoadingStateScreen';
@@ -69,14 +68,6 @@ export function HomePage() {
           description={error}
         />
       )}
-      <div className="fbv g12">
-        <p className="f16 bold">Tutorial</p>
-        <MediaDisplay
-          className={`br12 ${stylex.props(styles.tutorial).className}`}
-          src={video}
-          type="video"
-        />
-      </div>
       <div className="fbv g12">
         <p className="f16 bold">Upload or Select a video to try with DEVA</p>
         <div className={`${stylex.props(styles.cardContainer).className}`}>
