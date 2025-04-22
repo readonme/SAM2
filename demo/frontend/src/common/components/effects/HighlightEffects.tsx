@@ -20,25 +20,22 @@ import ToolbarActionIcon from '@/common/components/toolbar/ToolbarActionIcon';
 import ToolbarSection from '@/common/components/toolbar/ToolbarSection';
 import useVideoEffect from '@/common/components/video/editor/useVideoEffect';
 import {EffectIndex} from '@/common/components/video/effects/Effects';
-import {
-  activeHighlightEffectAtom,
-  activeHighlightEffectGroupAtom,
-} from '@/demo/atoms';
+import {activeHighlightEffectAtom} from '@/demo/atoms';
 import {useAtomValue} from 'jotai';
+import {highlightEffects} from './EffectsUtils';
 
 export default function HighlightEffects() {
   const setEffect = useVideoEffect();
   const activeEffect = useAtomValue(activeHighlightEffectAtom);
-  const activeEffectsGroup = useAtomValue(activeHighlightEffectGroupAtom);
 
   return (
     <ToolbarSection>
-      {activeEffectsGroup.map(highlightEffect => {
+      {highlightEffects.map(highlightEffect => {
         return (
           <ToolbarActionIcon
             variant="toggle"
             key={highlightEffect.title}
-            icon={highlightEffect.Icon}
+            icon={highlightEffect.icon}
             title={highlightEffect.title}
             isActive={activeEffect.name === highlightEffect.effectName}
             badge={

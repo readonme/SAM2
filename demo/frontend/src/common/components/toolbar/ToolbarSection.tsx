@@ -30,7 +30,7 @@ export default function ToolbarSection({
   return (
     <div className={`p-5 ${borderBottom && 'border-b border-black'}`}>
       {title && <div className="font-bold ml-2">{title}</div>}
-      <div className="grid grid-cols-4 gap-4 mt-2">{children}</div>
+      <div className="grid grid-cols-3 gap-4 mt-2">{children}</div>
     </div>
   );
 }

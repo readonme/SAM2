@@ -35,7 +35,7 @@ export default function BackgroundEffects() {
           <ToolbarActionIcon
             variant="toggle"
             key={backgroundEffect.title}
-            icon={backgroundEffect.Icon}
+            icon={backgroundEffect.icon}
             title={backgroundEffect.title}
             isActive={activeEffect.name === backgroundEffect.effectName}
             badge={

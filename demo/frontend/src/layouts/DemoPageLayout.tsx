@@ -38,6 +38,12 @@ import {useNavigate} from 'react-router-dom';
 type Props = PropsWithChildren;
 
 const styles = stylex.create({
+  container: {
+    width: '100%',
+    height: '100vh',
+    boxSizing: 'border-box',
+    minWidth: '50rem',
+  },
   content: {
     width: '100%',
     height: 'calc(100% - 52px)',
@@ -101,10 +107,14 @@ export default function DemoPageLayout({children}: Props) {
   }, [setEffect, setTabIndex]);
   const isVideoLoading = useAtomValue(isVideoLoadingAtom);
   const session = useAtomValue(sessionAtom);
+  const showLoading = isVideoLoading || session === null;
 
   return (
-    <div className="fbv pt24 pb20 px16 g16 wh100p" style={{minWidth: '50rem'}}>
-      {(isVideoLoading || session === null) && (
+    <div
+      className={`fbv pt24 pb20 px16 g16 ${
+        stylex.props(!showLoading && styles.container).className
+      }`}>
+      {showLoading && (
         <LoadingStateScreen
           title="Loading..."
           description="The loading time depends on the length of your video, you may test with a shorter video first."

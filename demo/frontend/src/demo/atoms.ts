@@ -21,10 +21,6 @@ import {
 } from '@/common/components/snackbar/DemoMessagesSnackbarUtils';
 import {Effects} from '@/common/components/video/effects/Effects';
 import {
-  DemoEffect,
-  highlightEffects,
-} from '@/common/components/video/effects/EffectUtils';
-import {
   BaseTracklet,
   SegmentationPoint,
   StreamingState,
@@ -155,9 +151,6 @@ export const activeHighlightEffectAtom = atom<EffectConfig>({
   variant: 0,
   numVariants: 0,
 });
-
-export const activeHighlightEffectGroupAtom =
-  atom<DemoEffect[]>(highlightEffects);
 
 // #####################
 // Toolbar
