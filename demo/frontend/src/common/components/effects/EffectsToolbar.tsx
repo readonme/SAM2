@@ -17,9 +17,8 @@
  */
 import BackgroundEffects from '@/common/components/effects/BackgroundEffects';
 import HighlightEffects from '@/common/components/effects/HighlightEffects';
-import useMessagesSnackbar from '@/common/components/snackbar/useDemoMessagesSnackbar';
 import stylex from '@stylexjs/stylex';
-import {useEffect, useRef, useState} from 'react';
+import {useState} from 'react';
 import ToolbarHeaderWrapper from '../toolbar/ToolbarHeaderWrapper';
 import EffectsConfirm from './EffectsConfirm';
 
@@ -39,16 +38,7 @@ const styles = stylex.create({
 });
 
 export default function EffectsToolbar() {
-  const isEffectsMessageShown = useRef(false);
-  const {enqueueMessage} = useMessagesSnackbar();
   const [tab, setTab] = useState<'object' | 'background'>('object');
-
-  useEffect(() => {
-    if (!isEffectsMessageShown.current) {
-      isEffectsMessageShown.current = true;
-      enqueueMessage('effectsMessage');
-    }
-  }, [enqueueMessage]);
 
   return (
     <div className="flex flex-col h-full">

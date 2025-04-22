@@ -34,7 +34,6 @@ export interface MessagesEventMap {
   trackAndPlayClick: MessageEvent;
   trackAndPlayComplete: MessageEvent;
   trackAndPlayThrottlingWarning: MessageEvent;
-  effectsMessage: MessageEvent;
 }
 
 export const defaultMessageMap: MessagesEventMap = {
@@ -72,10 +71,5 @@ export const defaultMessageMap: MessagesEventMap = {
     text: 'Looks like you have clicked the tracking button a bit too often! To keep things running smoothly, we have temporarily disabled the button.',
     shown: false,
     options: {repeat: true},
-  },
-  effectsMessage: {
-    text: 'Tip: If you aren’t sure where to get started, click “Surprise Me” to apply a surprise effect to your video.',
-    shown: false,
-    options: {expire: false, repeat: false},
   },
 };
