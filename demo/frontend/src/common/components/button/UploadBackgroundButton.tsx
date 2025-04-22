@@ -1,26 +1,24 @@
 import Logger from '@/common/logger/Logger';
 import {activeBackgroundEffectAtom} from '@/demo/atoms';
 import {MAX_FILE_SIZE_IN_MB, MAX_VIDEO_UPLOAD_SIZE} from '@/demo/DemoConfig';
-import {fontSize} from '@/theme/tokens.stylex';
+import {spacing} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {useAtomValue} from 'jotai';
 import {useState} from 'react';
 import {FileRejection, FileWithPath, useDropzone} from 'react-dropzone';
+import Icon from '../custom/Icon';
 import useToolbarTabs from '../toolbar/useToolbarTabs';
 import useVideoEffect from '../video/editor/useVideoEffect';
 import {EffectIndex} from '../video/effects/Effects';
 
 const styles = stylex.create({
   uploadButton: {
+    color: 'black',
+    background: '#44DAC8',
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    padding: 8,
-    background: 'linear-gradient(to right bottom, #595FEF,#FB73A5)',
-    borderRadius: '10px',
-    color: 'white',
-    fontSize: fontSize['xs'],
-    cursor: 'pointer',
+    bottom: spacing[3],
+    right: spacing[3],
+    borderRadius: 8,
     zIndex: 1,
   },
 });
@@ -84,7 +82,10 @@ export default function UploadBackgroundButton() {
         {...stylex.props(styles.uploadButton)}
         {...getRootProps()}>
         <input {...getInputProps()} />
-        Upload Background
+        <div className="fbh fbac g8 f14 py8 px16 hand">
+          <Icon name="image" size={14} />
+          Add Background Image
+        </div>
       </div>
     )
   );

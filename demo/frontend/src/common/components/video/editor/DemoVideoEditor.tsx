@@ -47,7 +47,6 @@ import {
   VideoData,
 } from '@/demo/atoms';
 import useSettingsContext from '@/settings/useSettingsContext';
-import {color} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {useEffect, useState} from 'react';
@@ -59,8 +58,7 @@ const styles = stylex.create({
     flexDirection: 'column',
     overflow: 'auto',
     width: '100%',
-    borderColor: color['gray-800'],
-    backgroundColor: color['gray-800'],
+    background: '#1E2128',
     borderRadius: 12,
   },
 });
@@ -246,7 +244,7 @@ export default function DemoVideoEditor({video: inputVideo}: Props) {
           video={inputVideo}
           layers={layers}
           loading={session == null}>
-          <div className="bg-graydark-800 w-full px20">
+          <div className="w-full px20">
             <VideoFilmstripWithPlayback />
             <TrackletsAnnotation />
           </div>

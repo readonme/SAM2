@@ -38,12 +38,10 @@ import {useNavigate} from 'react-router-dom';
 type Props = PropsWithChildren;
 
 const styles = stylex.create({
-  container: {
+  content: {
     width: '100%',
     height: 'calc(100% - 52px)',
     display: 'flex',
-    justifyContent: 'stretch',
-    alignItems: 'stretch',
     gap: spacing[3],
   },
   badge: {
@@ -105,7 +103,7 @@ export default function DemoPageLayout({children}: Props) {
   const session = useAtomValue(sessionAtom);
 
   return (
-    <div className="fbv pt24 pb20 px16 g16 wh100p">
+    <div className="fbv pt24 pb20 px16 g16 wh100p" style={{minWidth: '50rem'}}>
       {(isVideoLoading || session === null) && (
         <LoadingStateScreen
           title="Loading..."
@@ -157,10 +155,6 @@ export default function DemoPageLayout({children}: Props) {
           )}
         </div>
         <div className="fbh fbac g28">
-          <div className="fbh fbac g8">
-            <Icon name="query" size={24} />
-            <p className="f14">How to use？</p>
-          </div>
           <ResetButton
             onClick={() => restartSession(reset)}
             isLoading={isLoading}
@@ -168,7 +162,9 @@ export default function DemoPageLayout({children}: Props) {
           />
         </div>
       </div>
-      <div {...stylex.props(styles.container)}>{children}</div>
+      <div className={`${stylex.props(styles.content).className}`}>
+        {children}
+      </div>
     </div>
   );
 }
