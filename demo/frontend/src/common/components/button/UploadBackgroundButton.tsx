@@ -4,9 +4,10 @@ import {MAX_FILE_SIZE_IN_MB, MAX_VIDEO_UPLOAD_SIZE} from '@/demo/DemoConfig';
 import {spacing} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {useAtomValue} from 'jotai';
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {FileRejection, FileWithPath, useDropzone} from 'react-dropzone';
 import Icon from '../custom/Icon';
+import useMessagesSnackbar from '../snackbar/useMessagesSnackbar';
 import useToolbarTabs from '../toolbar/useToolbarTabs';
 import useVideoEffect from '../video/editor/useVideoEffect';
 import {EffectIndex} from '../video/effects/Effects';
@@ -25,7 +26,8 @@ const styles = stylex.create({
 
 export default function UploadBackgroundButton() {
   const [tabIndex] = useToolbarTabs();
-  const [, setError] = useState<string | null>(null);
+  const {enqueueMessage} = useMessagesSnackbar();
+  const [error, setError] = useState<string | null>(null);
   const activeEffect = useAtomValue(activeBackgroundEffectAtom);
   const setEffect = useVideoEffect();
   const {getRootProps, getInputProps} = useDropzone({
@@ -73,6 +75,13 @@ export default function UploadBackgroundButton() {
     },
     maxSize: MAX_VIDEO_UPLOAD_SIZE,
   });
+
+  useEffect(() => {
+    if (error) {
+      enqueueMessage(error, {type: 'warning', expire: false});
+      setError(null);
+    }
+  }, [enqueueMessage, error]);
 
   return (
     tabIndex === 1 &&
