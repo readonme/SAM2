@@ -108,8 +108,8 @@ export default function DemoPageLayout({children}: Props) {
     <div className="fbv pt24 pb20 px16 g16 wh100p">
       {(isVideoLoading || session === null) && (
         <LoadingStateScreen
-          title="Loading demo..."
-          description="This may take a few moments, you're almost there!"
+          title="Loading..."
+          description="The loading time depends on the length of your video, you may test with a shorter video first."
         />
       )}
       <div className="fbh fbac g50">

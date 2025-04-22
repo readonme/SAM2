@@ -21,7 +21,7 @@ export type Settings = {
 };
 
 // Key used to store the settings in the browser's local storage.
-export const SAM2_SETTINGS_KEY = 'VBR_SETTINGS_KEY';
+export const SETTINGS_KEY = 'VBR_SETTINGS_KEY';
 
 export type Action =
   | {type: 'load-state'}
@@ -35,13 +35,13 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export function settingsReducer(state: Settings, action: Action): Settings {
   function storeSettings(newState: Settings): void {
-    localStorage.setItem(SAM2_SETTINGS_KEY, JSON.stringify(newState));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(newState));
   }
 
   switch (action.type) {
     case 'load-state': {
       try {
-        const serializedSettings = localStorage.getItem(SAM2_SETTINGS_KEY);
+        const serializedSettings = localStorage.getItem(SETTINGS_KEY);
         if (serializedSettings != null) {
           return JSON.parse(serializedSettings) as Settings;
         } else {

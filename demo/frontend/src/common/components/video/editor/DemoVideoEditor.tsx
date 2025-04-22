@@ -137,7 +137,7 @@ export default function DemoVideoEditor({video: inputVideo}: Props) {
 
     video?.addEventListener('renderingError', onRenderingError);
 
-    video?.initializeTracker('SAM 2', {
+    video?.initializeTracker('Video Background Remover', {
       inferenceEndpoint: settings.inferenceAPIEndpoint,
     });
 

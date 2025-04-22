@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import {DEMO_FRIENDLY_NAME} from '@/demo/DemoConfig';
-import SAM2Settings from '@/settings/SAM2Settings';
+import Settings from '@/settings/Settings';
 import {XMarkIcon} from '@heroicons/react/24/solid';
 import {forwardRef, useState} from 'react';
 import {Button, Modal} from 'react-daisyui';
@@ -23,16 +23,16 @@ import useSettingsContext from './useSettingsContext';
 type Props = unknown;
 
 type Config = {
-  key: 'sam2';
+  key: 'video_background_remover';
   title: string;
   component: React.ElementType;
 };
 
 const SettingsConfig: Config[] = [
   {
-    key: 'sam2',
+    key: 'video_background_remover',
     title: DEMO_FRIENDLY_NAME,
-    component: SAM2Settings,
+    component: Settings,
   },
 ];
 

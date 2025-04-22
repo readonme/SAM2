@@ -81,7 +81,9 @@ export default function MessagesSnackbar() {
         <div className="fbv fbae g12">
           <div className="fbh g8">
             {message.type === 'loading' && <Loading size="xs" variant="dots" />}
-            {message.type === 'info' && <Icon name="info" size={16} />}
+            {message.type === 'info' && (
+              <Icon name="info" className="mt1" size={16} />
+            )}
             {message.text}
           </div>
           {message.showClose && (

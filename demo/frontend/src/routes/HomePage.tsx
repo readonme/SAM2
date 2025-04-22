@@ -55,7 +55,7 @@ export function HomePage() {
   );
 
   return (
-    <div className="fbv g24 p24">
+    <div className="fbv g24 p24 w100p">
       {isUploading && (
         <LoadingStateScreen
           title="Uploading video..."

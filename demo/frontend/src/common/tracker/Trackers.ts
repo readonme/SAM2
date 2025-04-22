@@ -22,9 +22,9 @@ export type TrackerOptions = {
 };
 
 export type Trackers = {
-  'SAM 2': typeof SAM2Model;
+  'Video Background Remover': typeof SAM2Model;
 };
 
 export const TRACKER_MAPPING: Trackers = {
-  'SAM 2': SAM2Model,
+  'Video Background Remover': SAM2Model,
 };

@@ -22,7 +22,7 @@ export default function PageNotFoundPage() {
       description="It looks like you might be in the wrong place."
       linkProps={{
         to: '..',
-        label: 'Click here to access the SAM 2 Demo',
+        label: 'Back to homepage',
       }}
     />
   );

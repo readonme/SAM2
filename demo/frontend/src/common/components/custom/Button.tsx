@@ -7,7 +7,7 @@ type ButtonProps = {
   height: number;
   disabled?: boolean;
   themeStyle?: boolean;
-  keepState?: 'active' | 'inactive';
+  keepState?: 'active' | 'inactive' | null;
   defaultStroke?: string;
   defaultColor?: string;
   defaultFill?: string;

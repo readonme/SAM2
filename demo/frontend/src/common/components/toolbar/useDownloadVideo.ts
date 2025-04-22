@@ -34,7 +34,7 @@ type State = {
 function getFileName() {
   const date = new Date();
   const timestamp = date.getTime();
-  return `sam2_masked_video_${timestamp}.mp4`;
+  return `video_background_remover_masked_video_${timestamp}.mp4`;
 }
 
 export default function useDownloadVideo(): State {
