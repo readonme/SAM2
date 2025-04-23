@@ -121,9 +121,10 @@ export const pointsAtom = atom<SegmentationPoint[]>(get => {
 export const labelTypeAtom = atom<'positive' | 'negative'>('positive');
 
 export const isAddObjectEnabledAtom = atom<boolean>(get => {
+  const isStreaming = get(isStreamingAtom);
   const trackletsInitialized = get(areTrackletObjectsInitializedAtom);
   const isObjectLimitReached = get(isTrackletObjectLimitReachedAtom);
-  return trackletsInitialized && !isObjectLimitReached;
+  return trackletsInitialized && !isObjectLimitReached && !isStreaming;
 });
 
 export const codeEditorOpenedAtom = atom<boolean>(false);

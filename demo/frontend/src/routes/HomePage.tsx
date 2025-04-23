@@ -69,7 +69,7 @@ export function HomePage() {
         />
       )}
       <div className="fbv g12">
-        <p className="f16 bold">Upload or Select a video to try with DEVA</p>
+        <p className="f16 bold">Upload or Select a video to try</p>
         <div className={`${stylex.props(styles.cardContainer).className}`}>
           <div className="cursor-pointer" {...getRootProps()}>
             <input {...getInputProps()} />
