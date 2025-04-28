@@ -1,3 +1,4 @@
+import {logButtonClick} from '@/common/apis/report';
 import Logger from '@/common/logger/Logger';
 import {activeBackgroundEffectAtom} from '@/demo/atoms';
 import {MAX_FILE_SIZE_IN_MB, MAX_VIDEO_UPLOAD_SIZE} from '@/demo/DemoConfig';
@@ -62,6 +63,7 @@ export default function UploadBackgroundButton() {
         return;
       }
       if (activeEffect.name === 'EraseBackground') {
+        logButtonClick({button: 'app_replace_background_image'});
         setEffect('EraseBackground', EffectIndex.BACKGROUND, {
           image: await createImageBitmap(acceptedFiles[0]),
           numVariants: 4,

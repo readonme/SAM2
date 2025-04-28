@@ -1,3 +1,4 @@
+import {logButtonClick} from '@/common/apis/report';
 import {MediaDisplay} from '@/common/components/custom/Asset';
 import Icon from '@/common/components/custom/Icon';
 import LoadingStateScreen from '@/common/loading/LoadingStateScreen';
@@ -29,6 +30,7 @@ export function HomePage() {
       Logger.error(error);
     },
     onUploadStart: () => {
+      logButtonClick({button: 'app_upload_video'});
       setUploadingState('uploading');
     },
   });

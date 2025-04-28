@@ -28,6 +28,7 @@ import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {useCallback, useEffect} from 'react';
 import CustomButton from '../custom/Button';
 import Icon from '../custom/Icon';
+import {logButtonClick} from '@/common/apis/report';
 
 export default function TrackAndPlayButton() {
   const video = useVideo();
@@ -74,6 +75,7 @@ export default function TrackAndPlayButton() {
     throttle(
       () => {
         if (!isStreaming) {
+          logButtonClick({button: 'app_track_objects'});
           enqueueMessage('trackAndPlayClick');
           video?.streamMasks();
           setSession(previousSession =>
@@ -82,6 +84,7 @@ export default function TrackAndPlayButton() {
               : {...previousSession, ranPropagation: true},
           );
         } else {
+          logButtonClick({button: 'app_cancel_track_objects'});
           video?.abortStreamMasks();
         }
       },

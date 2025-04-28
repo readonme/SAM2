@@ -15,6 +15,7 @@
  *
  * Modified by Real Matrix in 2025
  */
+import {logButtonClick} from '@/common/apis/report';
 import {
   EncodingCompletedEvent,
   EncodingStateUpdateEvent,
@@ -46,6 +47,8 @@ export default function useDownloadVideo(): State {
 
   async function download(shouldSave = true): Promise<MP4ArrayBuffer> {
     return new Promise(resolve => {
+      logButtonClick({button: 'app_download_video'});
+
       function onEncodingStateUpdate(event: EncodingStateUpdateEvent) {
         setDownloadingState('encoding');
         setProgress(event.progress);

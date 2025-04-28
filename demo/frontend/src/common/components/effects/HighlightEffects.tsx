@@ -15,6 +15,7 @@
  *
  * Modified by Real Matrix in 2025
  */
+import {logButtonClick} from '@/common/apis/report';
 import EffectVariantBadge from '@/common/components/effects/EffectVariantBadge';
 import ToolbarActionIcon from '@/common/components/toolbar/ToolbarActionIcon';
 import ToolbarSection from '@/common/components/toolbar/ToolbarSection';
@@ -46,6 +47,9 @@ export default function HighlightEffects() {
               )
             }
             onClick={() => {
+              logButtonClick({
+                button: `app_add_objects_effect_${highlightEffect.title}`,
+              });
               if (activeEffect.name === highlightEffect.effectName) {
                 setEffect(highlightEffect.effectName, EffectIndex.HIGHLIGHT, {
                   variant:

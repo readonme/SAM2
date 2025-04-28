@@ -62,6 +62,7 @@ import {
 import {THEME_COLORS} from '@/theme/colors';
 import invariant from 'invariant';
 import {IEnvironment, commitMutation, graphql} from 'relay-runtime';
+import {logButtonClick} from '../apis/report';
 
 type Options = Pick<TrackerOptions, 'inferenceEndpoint'>;
 
@@ -341,6 +342,7 @@ export class SAM2Model extends Tracker {
         p[1] / this._context.height,
       ]);
       const labels = points.map(p => p[2]);
+      logButtonClick({button: 'app_add_new_points'});
       commitMutation<SAM2ModelAddNewPointsMutation>(this._environment, {
         mutation: graphql`
           mutation SAM2ModelAddNewPointsMutation($input: AddPointsInput!) {

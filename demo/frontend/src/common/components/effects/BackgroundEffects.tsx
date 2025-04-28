@@ -15,6 +15,7 @@
  *
  * Modified by Real Matrix in 2025
  */
+import {logButtonClick} from '@/common/apis/report';
 import {backgroundEffects} from '@/common/components/effects/EffectsUtils';
 import EffectVariantBadge from '@/common/components/effects/EffectVariantBadge';
 import ToolbarActionIcon from '@/common/components/toolbar/ToolbarActionIcon';
@@ -46,6 +47,9 @@ export default function BackgroundEffects() {
               )
             }
             onClick={() => {
+              logButtonClick({
+                button: `app_add_background_effect_${backgroundEffect.title}`,
+              });
               if (activeEffect.name === backgroundEffect.effectName) {
                 setEffect(backgroundEffect.effectName, EffectIndex.BACKGROUND, {
                   variant:

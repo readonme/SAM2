@@ -15,6 +15,7 @@
  *
  * Modified by Real Matrix in 2025
  */
+import {logButtonClick} from '@/common/apis/report';
 import ResetButton from '@/common/components/button/ResetButton';
 import Icon from '@/common/components/custom/Icon';
 import useRestartSession from '@/common/components/session/useRestartSession';
@@ -108,6 +109,10 @@ export default function DemoPageLayout({children}: Props) {
   const isVideoLoading = useAtomValue(isVideoLoadingAtom);
   const session = useAtomValue(sessionAtom);
   const showLoading = isVideoLoading || session === null;
+  const restart = () => {
+    logButtonClick({button: 'app_start_over'});
+    restartSession(reset);
+  };
 
   return (
     <div
@@ -166,7 +171,7 @@ export default function DemoPageLayout({children}: Props) {
         </div>
         <div className="fbh fbac g28">
           <ResetButton
-            onClick={() => restartSession(reset)}
+            onClick={restart}
             isLoading={isLoading}
             title="Start over"
           />
