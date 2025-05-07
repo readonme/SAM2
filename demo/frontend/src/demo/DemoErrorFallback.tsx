@@ -20,7 +20,7 @@ export default function DemoErrorFallback(_props: FallbackProps) {
   return (
     <LoadingStateScreen
       title="Well, this is embarrassing..."
-      description="Our tool is not optimized for mobile experience yet, please use a PC or laptop."
+      description="System error, please try again later."
       linkProps={{to: '..', label: 'Back to homepage'}}
     />
   );
