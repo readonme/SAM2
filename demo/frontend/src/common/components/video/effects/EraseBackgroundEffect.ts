@@ -27,10 +27,52 @@ export default class EraseBackgroundEffect extends AbstractEffect {
     context: EffectFrameContext,
     _tracklets: Tracklet[],
   ): void {
-    const fillColor = ['#000', '#fff', '#0f0'][this.variant % 3];
-    form.fillOnly(fillColor).rect([
-      [0, 0],
-      [context.width, context.height],
-    ]);
+    if (this.variant === 3 && this.image) {
+      // 计算图片宽高比
+      const imgRatio = this.image.width / this.image.height;
+      // 计算目标区域宽高比
+      const targetRatio = context.width / context.height;
+
+      let sourceX = 0,
+        sourceY = 0,
+        sourceWidth = this.image.width,
+        sourceHeight = this.image.height;
+      const destX = 0,
+        destY = 0,
+        destWidth = context.width,
+        destHeight = context.height;
+
+      // 判断图片宽高比与目标区域的关系
+      if (imgRatio > targetRatio) {
+        // 图片比目标区域更宽，需要裁剪左右
+        sourceHeight = this.image.height;
+        sourceWidth = sourceHeight * targetRatio;
+        sourceX = (this.image.width - sourceWidth) / 2;
+      } else {
+        // 图片比目标区域更高，需要裁剪上下
+        sourceWidth = this.image.width;
+        sourceHeight = sourceWidth / targetRatio;
+        sourceY = (this.image.height - sourceHeight) / 2;
+      }
+
+      // 绘制图片
+      form.ctx.drawImage(
+        this.image,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight, // 源图像裁剪区域
+        destX,
+        destY,
+        destWidth,
+        destHeight, // 目标画布区域
+      );
+    } else {
+      const fillColor = ['#000', '#fff', '#0f0'][this.variant % 3];
+      form.fillOnly(fillColor).rect([
+        [0, 0],
+        [context.width, context.height],
+      ]);
+    }
   }
 }

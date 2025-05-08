@@ -12,8 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import {spacing} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {PropsWithChildren} from 'react';
 
@@ -22,12 +23,7 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: {
-      default: spacing[2],
-      '@media screen and (max-width: 768px)': spacing[4],
-    },
-    paddingBottom: spacing[6],
-    paddingHorizontal: spacing[6],
+    padding: 20,
   },
 });
 

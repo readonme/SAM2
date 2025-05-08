@@ -12,8 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import PointsToggle from '@/common/components/annotations/PointsToggle';
 import useVideo from '@/common/components/video/editor/useVideo';
 import useReportError from '@/common/error/useReportError';
 import {
@@ -27,6 +28,7 @@ import {
   SubtractFilled,
   TrashCan,
 } from '@carbon/icons-react';
+import stylex from '@stylexjs/stylex';
 import {useAtom, useAtomValue} from 'jotai';
 import {useState} from 'react';
 import type {ButtonProps} from 'react-daisyui';
@@ -37,12 +39,22 @@ type Props = {
   active: boolean;
 };
 
+const styles = stylex.create({
+  button: {
+    ':hover': {
+      background: '#FFFFFF14',
+    },
+  },
+});
+
 function CustomButton({className, ...props}: ButtonProps) {
   return (
     <Button
       size="sm"
       color="ghost"
-      className={`font-medium border-none hover:bg-black  px-2 h-10 ${className}`}
+      className={`font-medium border-none px8 -mx-8 h-10 ${className} ${
+        stylex.props(styles.button).className
+      }`}
       {...props}>
       {props.children}
     </Button>
@@ -86,31 +98,26 @@ export default function ObjectActions({objectId, active}: Props) {
   return (
     <div>
       {active && (
-        <div className="text-sm mt-1 leading-snug text-gray-400 hidden md:block ml-2 md:mb-4">
+        <div className="text-sm mt8 leading-snug label1 hidden md:block f13">
           Select <AddFilled size={14} className="inline" /> to add areas to the
           object and <SubtractFilled size={14} className="inline" /> to remove
           areas from the object in the video. Click on an existing point to
           delete it.
         </div>
       )}
-
-      <div className="flex justify-between items-center md:mt-2 mt-0">
-        {active ? (
-          <PointsToggle />
-        ) : (
-          <>
-            <CustomButton startIcon={<Select_02 size={24} />}>
-              Edit selection
-            </CustomButton>
-            <CustomButton
-              loading={isRemovingObject}
-              onClick={handleRemoveObject}
-              startIcon={!isRemovingObject && <TrashCan size={24} />}>
-              <span className="hidden md:inline">Clear</span>
-            </CustomButton>
-          </>
-        )}
-      </div>
+      {!active && (
+        <div className="fbh g40 fbac mt12">
+          <CustomButton startIcon={<Select_02 size={24} />}>
+            Edit selection
+          </CustomButton>
+          <CustomButton
+            loading={isRemovingObject}
+            onClick={handleRemoveObject}
+            startIcon={!isRemovingObject && <TrashCan size={24} />}>
+            <span className="hidden md:inline">Clear</span>
+          </CustomButton>
+        </div>
+      )}
     </div>
   );
 }

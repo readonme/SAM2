@@ -12,63 +12,42 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import introVideo from '@/assets/videos/sam2_720px_dark.mp4';
-import introVideoPoster from '@/assets/videos/sam2_video_poster.png';
-import StaticVideoPlayer from '@/common/loading/StaticVideoPlayer';
-import {borderRadius, fontSize, spacing} from '@/theme/tokens.stylex';
+import {spacing} from '@/theme/tokens.stylex';
 import stylex from '@stylexjs/stylex';
 import {PropsWithChildren, ReactNode} from 'react';
 import {Link} from 'react-router-dom';
+import CustomButton from '../components/custom/Button';
+import css from './Loading.module.css';
 
 const styles = stylex.create({
   container: {
     backgroundColor: '#000',
+    position: 'absolute',
     minHeight: '100%',
+    width: '100%',
+    zIndex: 999,
+    left: 0,
+    top: 0,
   },
   content: {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing[8],
-    maxWidth: '36rem', //* 576px */
+    maxWidth: '36rem',
     marginHorizontal: 'auto',
-    paddingVertical: {
-      default: '6rem',
-      '@media screen and (max-width: 768px)': '3rem',
-    },
+    paddingVertical: '6rem',
     paddingHorizontal: spacing[8],
-    color: '#fff',
+    textAlign: 'center',
   },
-  animationContainer: {
+  loadingContainer: {
     display: 'flex',
     justifyContent: 'center',
-  },
-  animation: {
-    border: '2px solid white',
-    borderRadius: borderRadius['xl'],
-    maxWidth: 450,
-    maxHeight: 450,
-    height: '100%',
-    overflow: 'hidden',
-    '@media screen and (max-width: 768px)': {
-      height: 300,
-      width: 300,
-    },
-  },
-  title: {
-    textAlign: 'center',
-    lineHeight: '2rem',
-    fontSize: fontSize['2xl'],
-    fontWeight: 400,
-  },
-  description: {
-    textAlign: 'center',
-    color: '#A7B3BF',
   },
   link: {
     textAlign: 'center',
     textDecorationLine: 'underline',
-    color: '#A7B3BF',
   },
 });
 
@@ -88,30 +67,28 @@ export default function LoadingStateScreen({
   linkProps,
 }: Props) {
   return (
-    <div {...stylex.props(styles.container)}>
+    <div className={`center ${stylex.props(styles.container).className}`}>
       <div {...stylex.props(styles.content)}>
-        <div {...stylex.props(styles.animationContainer)}>
-          <div {...stylex.props(styles.animation)}>
-            <StaticVideoPlayer
-              src={introVideo}
-              aspectRatio="square"
-              poster={introVideoPoster}
-              muted={true}
-              loop={true}
-              autoPlay={true}
-              playsInline={true}
-              controls={false}
-            />
-          </div>
+        <div {...stylex.props(styles.loadingContainer)}>
+          <div className={css.loader} />
         </div>
-        <h2 {...stylex.props(styles.title)}>{title}</h2>
+        <h2 className="f18 pt32" style={{fontWeight: 500}}>
+          {title}
+        </h2>
         {description != null && (
-          <div {...stylex.props(styles.description)}>{description}</div>
+          <div className="label3 f13 pt12">{description}</div>
         )}
         {children}
         {linkProps != null && (
-          <Link to={linkProps.to} {...stylex.props(styles.link)}>
-            {linkProps.label}
+          <Link to={linkProps.to} className="pt24 center">
+            <CustomButton
+              width={linkProps.label.length * 8 + 48}
+              height={44}
+              keepState={null}
+              defaultStroke="#FFFFFF66"
+              defaultColor="#FFFFFFCC">
+              {linkProps.label}
+            </CustomButton>
           </Link>
         )}
       </div>

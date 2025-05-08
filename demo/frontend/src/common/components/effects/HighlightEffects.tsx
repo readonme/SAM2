@@ -12,31 +12,31 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
+import {logButtonClick} from '@/common/apis/report';
 import EffectVariantBadge from '@/common/components/effects/EffectVariantBadge';
 import ToolbarActionIcon from '@/common/components/toolbar/ToolbarActionIcon';
 import ToolbarSection from '@/common/components/toolbar/ToolbarSection';
 import useVideoEffect from '@/common/components/video/editor/useVideoEffect';
 import {EffectIndex} from '@/common/components/video/effects/Effects';
-import {
-  activeHighlightEffectAtom,
-  activeHighlightEffectGroupAtom,
-} from '@/demo/atoms';
+import {activeHighlightEffectAtom} from '@/demo/atoms';
 import {useAtomValue} from 'jotai';
+import {highlightEffects} from './EffectsUtils';
 
 export default function HighlightEffects() {
   const setEffect = useVideoEffect();
   const activeEffect = useAtomValue(activeHighlightEffectAtom);
-  const activeEffectsGroup = useAtomValue(activeHighlightEffectGroupAtom);
 
   return (
-    <ToolbarSection title="Selected Objects" borderBottom={true}>
-      {activeEffectsGroup.map(highlightEffect => {
+    <ToolbarSection>
+      {highlightEffects.map(highlightEffect => {
         return (
           <ToolbarActionIcon
             variant="toggle"
             key={highlightEffect.title}
-            icon={highlightEffect.Icon}
+            icon={highlightEffect.icon}
             title={highlightEffect.title}
             isActive={activeEffect.name === highlightEffect.effectName}
             badge={
@@ -47,6 +47,9 @@ export default function HighlightEffects() {
               )
             }
             onClick={() => {
+              logButtonClick({
+                button: `app_add_objects_effect_${highlightEffect.title}`,
+              });
               if (activeEffect.name === highlightEffect.effectName) {
                 setEffect(highlightEffect.effectName, EffectIndex.HIGHLIGHT, {
                   variant:

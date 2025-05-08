@@ -12,8 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import PrimaryCTAButton from '@/common/components/button/PrimaryCTAButton';
 import useMessagesSnackbar from '@/common/components/snackbar/useDemoMessagesSnackbar';
 import useFunctionThrottle from '@/common/components/useFunctionThrottle';
 import useVideo from '@/common/components/video/editor/useVideo';
@@ -23,9 +24,11 @@ import {
   sessionAtom,
   streamingStateAtom,
 } from '@/demo/atoms';
-import {ChevronRight} from '@carbon/icons-react';
 import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {useCallback, useEffect} from 'react';
+import CustomButton from '../custom/Button';
+import Icon from '../custom/Icon';
+import {logButtonClick} from '@/common/apis/report';
 
 export default function TrackAndPlayButton() {
   const video = useVideo();
@@ -72,6 +75,7 @@ export default function TrackAndPlayButton() {
     throttle(
       () => {
         if (!isStreaming) {
+          logButtonClick({button: 'app_track_objects'});
           enqueueMessage('trackAndPlayClick');
           video?.streamMasks();
           setSession(previousSession =>
@@ -80,6 +84,7 @@ export default function TrackAndPlayButton() {
               : {...previousSession, ranPropagation: true},
           );
         } else {
+          logButtonClick({button: 'app_cancel_track_objects'});
           video?.abortStreamMasks();
         }
       },
@@ -113,11 +118,17 @@ export default function TrackAndPlayButton() {
   }, [handleTrackAndPlay]);
 
   return (
-    <PrimaryCTAButton
+    <CustomButton
       disabled={isThrottled || !areObjectsInitialized}
       onClick={handleTrackAndPlay}
-      endIcon={isStreaming ? undefined : <ChevronRight size={20} />}>
-      {isStreaming ? 'Cancel Tracking' : 'Track objects'}
-    </PrimaryCTAButton>
+      width={360}
+      height={44}
+      themeStyle
+      fullWidth>
+      <div className="f15 fbh fbac g6">
+        {isStreaming ? 'Cancel Tracking' : 'Track objects'}
+        {!isStreaming && <Icon name="arrow" size={10} />}
+      </div>
+    </CustomButton>
   );
 }

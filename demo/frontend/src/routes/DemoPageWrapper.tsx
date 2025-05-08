@@ -12,18 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
+import '@/assets/css/index.less';
 import LoadingStateScreen from '@/common/loading/LoadingStateScreen';
-import DemoPage from '@/routes/DemoPage';
-import stylex from '@stylexjs/stylex';
 import {isFirefox} from 'react-device-detect';
-
-const styles = stylex.create({
-  link: {
-    textDecorationLine: 'underline',
-    color: '#A7B3BF',
-  },
-});
+import MenuWrapper from './MenuWrapper';
 
 const REQUIRED_WINDOW_APIS = ['VideoEncoder', 'VideoDecoder', 'VideoFrame'];
 
@@ -49,25 +44,9 @@ export default function DemoPageWrapper() {
   const isBrowserUnsupported = !isBrowserSupported();
 
   if (isBrowserUnsupported && isFirefox) {
-    const nightlyUrl = 'https://wiki.mozilla.org/Nightly';
     return (
       <LoadingStateScreen
-        title="Sorry Firefox!"
-        description={
-          <div>
-            This version of Firefox doesn’t support the video features we’ll
-            need to run this demo. You can either update Firefox to the latest
-            nightly build{' '}
-            <a
-              {...stylex.props(styles.link)}
-              href={nightlyUrl}
-              target="_blank"
-              rel="noreferrer">
-              here
-            </a>
-            , or try again using Chrome or Safari.
-          </div>
-        }
+        title="Uh oh, this browser isn’t supported."
         linkProps={{to: '..', label: 'Back to homepage'}}
       />
     );
@@ -77,11 +56,10 @@ export default function DemoPageWrapper() {
     return (
       <LoadingStateScreen
         title="Uh oh, this browser isn’t supported."
-        description="This browser doesn’t support the video features we’ll need to run this demo. Try again using Chrome, Safari, or Firefox Nightly."
         linkProps={{to: '..', label: 'Back to homepage'}}
       />
     );
   }
 
-  return <DemoPage />;
+  return <MenuWrapper />;
 }

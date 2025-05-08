@@ -12,10 +12,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import PrimaryCTAButton from '@/common/components/button/PrimaryCTAButton';
 import useVideo from '@/common/components/video/editor/useVideo';
-import {ChevronRight} from '@carbon/icons-react';
+import CustomButton from '../custom/Button';
+import Icon from '../custom/Icon';
 
 type Props = {
   onSessionClose: () => void;
@@ -31,8 +33,16 @@ export default function CloseSessionButton({onSessionClose}: Props) {
   }
 
   return (
-    <PrimaryCTAButton onClick={handleCloseSession} endIcon={<ChevronRight />}>
-      Good to go
-    </PrimaryCTAButton>
+    <CustomButton
+      onClick={handleCloseSession}
+      width={360}
+      height={44}
+      themeStyle
+      fullWidth>
+      <div className="f15 fbh fbac g6">
+        Next
+        <Icon name="arrow" size={10} />
+      </div>
+    </CustomButton>
   );
 }

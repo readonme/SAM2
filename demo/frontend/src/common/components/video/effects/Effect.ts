@@ -25,6 +25,8 @@ export type EffectLayers = {
 
 export type EffectOptions = {
   variant: number;
+  image?: ImageBitmap;
+  numVariants?: number;
 };
 
 export type EffectInit = {
@@ -72,6 +74,7 @@ export interface Effect {
 }
 
 export abstract class AbstractEffect implements Effect {
+  public image?: ImageBitmap;
   public numVariants: number;
   public variant: number;
 
@@ -90,6 +93,8 @@ export abstract class AbstractEffect implements Effect {
   }
 
   async update(options: EffectOptions): Promise<void> {
+    this.image = options.image ?? this.image;
+    this.numVariants = options.numVariants ?? this.numVariants;
     this.variant = options.variant;
   }
 

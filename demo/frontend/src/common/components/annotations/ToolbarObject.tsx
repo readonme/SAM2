@@ -12,9 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import ObjectActions from '@/common/components/annotations/ObjectActions';
-import ObjectPlaceholder from '@/common/components/annotations/ObjectPlaceholder';
 import ObjectThumbnail from '@/common/components/annotations/ObjectThumbnail';
 import ToolbarObjectContainer from '@/common/components/annotations/ToolbarObjectContainer';
 import useVideo from '@/common/components/video/editor/useVideo';
@@ -22,12 +23,12 @@ import {BaseTracklet} from '@/common/tracker/Tracker';
 import emptyFunction from '@/common/utils/emptyFunction';
 import {activeTrackletObjectIdAtom} from '@/demo/atoms';
 import {useSetAtom} from 'jotai';
+import PointsToggle from './PointsToggle';
 
 type Props = {
   label: string;
   tracklet: BaseTracklet;
   isActive: boolean;
-  isMobile?: boolean;
   onClick?: () => void;
   onThumbnailClick?: () => void;
 };
@@ -36,7 +37,6 @@ export default function ToolbarObject({
   label,
   tracklet,
   isActive,
-  isMobile = false,
   onClick,
   onThumbnailClick = emptyFunction,
 }: Props) {
@@ -60,8 +60,12 @@ export default function ToolbarObject({
         isActive={isActive}
         title="New object"
         subtitle="No object is currently selected. Click an object in the video."
-        thumbnail={<ObjectPlaceholder showPlus={false} />}
-        isMobile={isMobile}
+        thumbnail={
+          <div
+            className={`relative h-12 w-12 md:h-20 md:w-20 shrink-0 rounded-lg`}
+            style={{background: tracklet.color}}
+          />
+        }
         onClick={onClick}
         onCancel={handleCancelNewObject}
       />
@@ -81,7 +85,7 @@ export default function ToolbarObject({
           onClick={onThumbnailClick}
         />
       }
-      isMobile={isMobile}>
+      actions={isActive && <PointsToggle />}>
       <ObjectActions objectId={tracklet.id} active={isActive} />
     </ToolbarObjectContainer>
   );

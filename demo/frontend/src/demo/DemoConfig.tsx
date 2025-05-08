@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {Effects} from '@/common/components/video/effects/Effects';
 
@@ -20,16 +22,10 @@ type EffectLayers = {
   highlight: keyof Effects;
 };
 
-export const DEMO_SHORT_NAME = 'SAM 2 Demo';
-export const RESEARCH_BY_META_AI = 'By Meta FAIR';
-export const DEMO_FRIENDLY_NAME = 'Segment Anything 2 Demo';
+export const DEMO_SHORT_NAME = 'Video Background Remover';
+export const DEMO_FRIENDLY_NAME =
+  'Free AI Video Background Remover Online | Remove Background from Video Easily';
 export const VIDEO_WATERMARK_TEXT = `Modified with ${DEMO_FRIENDLY_NAME}`;
-export const PROJECT_GITHUB_URL =
-  'https://github.com/facebookresearch/sam2';
-export const AIDEMOS_URL = 'https://aidemos.meta.com';
-export const ABOUT_URL = 'https://ai.meta.com/sam2';
-export const EMAIL_ADDRESS = 'segment-anything@meta.com';
-export const BLOG_URL = 'http://ai.meta.com/blog/sam2';
 
 export const VIDEO_API_ENDPOINT = 'https://sam2-back.wisegotech.com';
 export const INFERENCE_API_ENDPOINT = 'https://sam2-back.wisegotech.com';
@@ -41,4 +37,5 @@ export const DEFAULT_EFFECT_LAYERS: EffectLayers = {
   highlight: 'Overlay',
 };
 
-export const MAX_UPLOAD_FILE_SIZE = '70MB';
+export const MAX_FILE_SIZE_IN_MB = 70; // MB
+export const MAX_VIDEO_UPLOAD_SIZE = MAX_FILE_SIZE_IN_MB * 1024 ** 2;

@@ -402,6 +402,7 @@ export default class VideoWorkerContext {
       this.height,
       decodedVideo.frames.length,
       this._framesGenerator(decodedVideo, canvas, form),
+      decodedVideo.audio,
       progress => {
         this.sendResponse<EncodingStateUpdateResponse>('encodingStateUpdate', {
           progress,

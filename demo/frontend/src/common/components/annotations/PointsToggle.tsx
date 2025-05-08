@@ -12,30 +12,45 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {labelTypeAtom} from '@/demo/atoms';
 import {AddFilled, SubtractFilled} from '@carbon/icons-react';
+import stylex from '@stylexjs/stylex';
 import {useAtom} from 'jotai';
+
+const styles = stylex.create({
+  button: {
+    background: '#FFFFFF0A',
+    border: '0.5px solid #FFFFFF14',
+  },
+  active: {
+    background: '#FFFFFF14',
+    border: '0.5px solid #FFFFFF',
+  },
+});
 
 export default function PointsToggle() {
   const [labelType, setLabelType] = useAtom(labelTypeAtom);
   const isPositive = labelType === 'positive';
 
-  const buttonStyle = (selected: boolean) =>
-    `btn-md bg-graydark-800 !text-white md:px-2 lg:px-4 py-0.5 ${selected ? `border border-white hover:bg-graydark-800` : `border-graydark-700 hover:bg-graydark-700`}`;
-
   return (
-    <div className="flex items-center w-full md:ml-2">
-      <div className="join group grow gap-[1px]">
+    <div className="flex items-center w-full">
+      <div className="join group grow">
         <button
-          className={`w-1/2  btn join-item text-white ${buttonStyle(isPositive)}`}
+          className={`w-1/2 btn join-item text-white ${
+            stylex.props(styles.button, isPositive && styles.active).className
+          }`}
           onClick={() => setLabelType('positive')}>
-          <AddFilled size={24} className="text-blue-500" /> Add
+          <AddFilled size={24} style={{color: '#44DAC8'}} /> Add
         </button>
         <button
-          className={`w-1/2 btn join-item text-red-700 ${buttonStyle(!isPositive)}`}
+          className={`w-1/2 btn join-item text-white ${
+            stylex.props(styles.button, !isPositive && styles.active).className
+          }`}
           onClick={() => setLabelType('negative')}>
-          <SubtractFilled size={24} className="text-red-400" />
+          <SubtractFilled size={24} style={{color: '#FF3547'}} />
           Remove
         </button>
       </div>

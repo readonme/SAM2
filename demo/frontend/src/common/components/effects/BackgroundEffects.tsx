@@ -12,7 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
+import {logButtonClick} from '@/common/apis/report';
 import {backgroundEffects} from '@/common/components/effects/EffectsUtils';
 import EffectVariantBadge from '@/common/components/effects/EffectVariantBadge';
 import ToolbarActionIcon from '@/common/components/toolbar/ToolbarActionIcon';
@@ -27,13 +30,13 @@ export default function BackgroundEffects() {
   const activeEffect = useAtomValue(activeBackgroundEffectAtom);
 
   return (
-    <ToolbarSection title="Background" borderBottom={false}>
+    <ToolbarSection>
       {backgroundEffects.map(backgroundEffect => {
         return (
           <ToolbarActionIcon
             variant="toggle"
             key={backgroundEffect.title}
-            icon={backgroundEffect.Icon}
+            icon={backgroundEffect.icon}
             title={backgroundEffect.title}
             isActive={activeEffect.name === backgroundEffect.effectName}
             badge={
@@ -44,6 +47,9 @@ export default function BackgroundEffects() {
               )
             }
             onClick={() => {
+              logButtonClick({
+                button: `app_add_background_effect_${backgroundEffect.title}`,
+              });
               if (activeEffect.name === backgroundEffect.effectName) {
                 setEffect(backgroundEffect.effectName, EffectIndex.BACKGROUND, {
                   variant:

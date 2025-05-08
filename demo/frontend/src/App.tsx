@@ -12,8 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import SAM2DemoApp from '@/demo/SAM2DemoApp';
+import DemoApp from '@/demo/DemoApp';
 import SettingsContextProvider from '@/settings/SettingsContextProvider';
 import {RouterProvider, createBrowserRouter} from 'react-router-dom';
 
@@ -23,7 +25,7 @@ export default function App() {
       path: '*',
       element: (
         <SettingsContextProvider>
-          <SAM2DemoApp />
+          <DemoApp />
         </SettingsContextProvider>
       ),
     },

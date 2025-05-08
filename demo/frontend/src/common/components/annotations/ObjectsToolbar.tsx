@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import AddObjectButton from '@/common/components/annotations/AddObjectButton';
 import FirstClickView from '@/common/components/annotations/FirstClickView';
@@ -49,20 +51,22 @@ export default function ObjectsToolbar({onTabChange}: Props) {
   return (
     <div className="flex flex-col h-full">
       <ObjectsToolbarHeader />
-      <div className="grow w-full overflow-y-auto">
-        {tracklets.map(tracklet => {
-          return (
-            <ToolbarObject
-              key={tracklet.id}
-              label={getObjectLabel(tracklet)}
-              tracklet={tracklet}
-              isActive={activeTracklet?.id === tracklet.id}
-              onClick={() => {
-                setActiveTrackletId(tracklet.id);
-              }}
-            />
-          );
-        })}
+      <div className="grow w-full overflow-y-auto py24 fbv g20">
+        <div className=" fbv g16">
+          {tracklets.map(tracklet => {
+            return (
+              <ToolbarObject
+                key={tracklet.id}
+                label={getObjectLabel(tracklet)}
+                tracklet={tracklet}
+                isActive={activeTracklet?.id === tracklet.id}
+                onClick={() => {
+                  setActiveTrackletId(tracklet.id);
+                }}
+              />
+            );
+          })}
+        </div>
         {isAddObjectEnabled && <AddObjectButton />}
         {isObjectLimitReached && <LimitNotice />}
       </div>

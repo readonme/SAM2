@@ -12,16 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {
   defaultMessageMap,
   MessagesEventMap,
 } from '@/common/components/snackbar/DemoMessagesSnackbarUtils';
 import {Effects} from '@/common/components/video/effects/Effects';
-import {
-  DemoEffect,
-  highlightEffects,
-} from '@/common/components/video/effects/EffectUtils';
 import {
   BaseTracklet,
   SegmentationPoint,
@@ -58,7 +56,7 @@ export const sessionAtom = atom<Session | null>(null);
 // STREAMING/PLAYBACK
 // #####################
 
-export const isVideoLoadingAtom = atom<boolean>(false);
+export const isVideoLoadingAtom = atom<boolean>(true);
 
 export const streamingStateAtom = atom<StreamingState>('none');
 
@@ -123,14 +121,10 @@ export const pointsAtom = atom<SegmentationPoint[]>(get => {
 export const labelTypeAtom = atom<'positive' | 'negative'>('positive');
 
 export const isAddObjectEnabledAtom = atom<boolean>(get => {
-  const session = get(sessionAtom);
+  const isStreaming = get(isStreamingAtom);
   const trackletsInitialized = get(areTrackletObjectsInitializedAtom);
   const isObjectLimitReached = get(isTrackletObjectLimitReachedAtom);
-  return (
-    session?.ranPropagation === false &&
-    trackletsInitialized &&
-    !isObjectLimitReached
-  );
+  return trackletsInitialized && !isObjectLimitReached && !isStreaming;
 });
 
 export const codeEditorOpenedAtom = atom<boolean>(false);
@@ -158,9 +152,6 @@ export const activeHighlightEffectAtom = atom<EffectConfig>({
   variant: 0,
   numVariants: 0,
 });
-
-export const activeHighlightEffectGroupAtom =
-  atom<DemoEffect[]>(highlightEffects);
 
 // #####################
 // Toolbar

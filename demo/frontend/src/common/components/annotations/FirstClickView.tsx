@@ -12,8 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
-import ChangeVideo from '@/common/components/gallery/ChangeVideoModal';
 import useMessagesSnackbar from '@/common/components/snackbar/useDemoMessagesSnackbar';
 import {DEMO_SHORT_NAME} from '@/demo/DemoConfig';
 import {useEffect, useRef} from 'react';
@@ -30,19 +31,14 @@ export default function FirstClickView() {
   }, [enqueueMessage]);
 
   return (
-    <div className="w-full h-full flex flex-col p-8">
-      <div className="grow flex flex-col gap-6">
-        <h2 className="text-2xl">Click an object in the video to start</h2>
-        <p className="!text-gray-60">
+    <div className="w-full h-full flex flex-col p20">
+      <div className="grow flex flex-col g12">
+        <h2 className="f20 bold">Click an object in the video to start</h2>
+        <p className="label1 f14 pt4">
           You&apos;ll be able to use {DEMO_SHORT_NAME} to make fun edits to any
           video by tracking objects and applying visual effects.
         </p>
-        <p className="!text-gray-60">
-          To start, click any object in the video.
-        </p>
-      </div>
-      <div className="flex items-center">
-        <ChangeVideo />
+        <p className="label1 f14">To start, click any object in the video.</p>
       </div>
     </div>
   );

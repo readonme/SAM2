@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {BaseTracklet, SegmentationPoint} from '@/common/tracker/Tracker';
 import {TrackerOptions, Trackers} from '@/common/tracker/Trackers';
@@ -34,6 +36,7 @@ import {isPlayingAtom, isVideoLoadingAtom} from '@/demo/atoms';
 import {color} from '@/theme/tokens.stylex';
 import {useAtom} from 'jotai';
 import useResizeObserver from 'use-resize-observer';
+import UploadBackgroundButton from '../button/UploadBackgroundButton';
 import VideoLoadingOverlay from './VideoLoadingOverlay';
 import {
   StreamingStateUpdateEvent,
@@ -47,6 +50,8 @@ const styles = stylex.create({
     position: 'relative',
     width: '100%',
     height: '100%',
+    padding: 12,
+    background: 'black',
   },
   canvasContainer: {
     display: 'flex',
@@ -55,6 +60,7 @@ const styles = stylex.create({
     backgroundColor: color['gray-800'],
     width: '100%',
     height: '100%',
+    background: 'black',
   },
   controls: {
     position: 'absolute',
@@ -74,9 +80,7 @@ type Props = {
   width: number;
   height: number;
   loading?: boolean;
-  containerStyle?: StyleXStyles<{
-    position: CSSProperties['position'];
-  }>;
+  containerStyle?: StyleXStyles;
   canvasStyle?: StyleXStyles<{
     width: CSSProperties['width'];
   }>;
@@ -86,6 +90,7 @@ type Props = {
 
 export type VideoRef = {
   getCanvas(): HTMLCanvasElement | null;
+  get fps(): number;
   get width(): number;
   get height(): number;
   get frame(): number;
@@ -164,11 +169,14 @@ export default forwardRef<VideoRef, Props>(function Video(
       getCanvas() {
         return canvasRef.current;
       },
+      get fps() {
+        return bridge.fps;
+      },
       get width() {
         return bridge.width;
       },
       get height() {
-        return bridge.width;
+        return bridge.height;
       },
       get frame() {
         return bridge.frame;
@@ -345,6 +353,7 @@ export default forwardRef<VideoRef, Props>(function Video(
           }}
         />
       </div>
+      <UploadBackgroundButton />
       {controls && (
         <div {...stylex.props(styles.controls)}>
           <Button

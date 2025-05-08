@@ -1,0 +1,44 @@
+.generate(@baseName, @property, @unit, @i, @max) when (@i =< @max) {
+  .generate(@baseName, @property, @unit, @i + 1, @max);
+  .@{baseName}@{i} {
+    @{property}: @i * @unit;
+  }
+}
+
+.generate2(@baseName, @p1, @p2, @unit, @i, @max) when (@i =< @max) {
+  .generate2(@baseName, @p1, @p2, @unit, @i + 1, @max);
+  .@{baseName}@{i} {
+    @{p1}: @i * @unit;
+    @{p2}: @i * @unit;
+  }
+}
+
+.generate(m, margin, 0.0625rem, 0, 100);
+.generate(ml, margin-left, 0.0625rem, 0, 100);
+.generate(mr, margin-right, 0.0625rem, 0, 100);
+.generate(mt, margin-top, 0.0625rem, 0, 100);
+.generate(mb, margin-bottom, 0.0625rem, 0, 100);
+.generate2(mx, margin-left, margin-right, 0.0625rem, 0, 100);
+.generate2(my, margin-top, margin-bottom, 0.0625rem, 0, 100);
+
+.generate(-m, margin, 0.0625rem, -20, -1);
+.generate(-ml, margin-left, 0.0625rem,  -20, -10);
+.generate(-mr, margin-right, 0.0625rem, -20, -1);
+.generate(-mt, margin-top, 0.0625rem,  -20, -1);
+.generate(-mb, margin-bottom, 0.0625rem,  -20, -1);
+.generate2(-mx, margin-left, margin-right, 0.0625rem,  -20, -1);
+.generate2(-my, margin-top, margin-bottom, 0.0625rem,  -20, -1);
+
+.generate(p, padding, 0.0625rem, 0, 100);
+.generate(pl, padding-left, 0.0625rem, 0, 100);
+.generate(pr, padding-right, 0.0625rem, 0, 100);
+.generate(pt, padding-top, 0.0625rem, 0, 100);
+.generate(pb, padding-bottom, 0.0625rem, 0, 100);
+.generate2(px, padding-left, padding-right, 0.0625rem, 0, 100);
+.generate2(py, padding-top, padding-bottom, 0.0625rem, 0, 100);
+
+.generate(br, border-radius, 0.0625rem, 0, 100);
+.generate(f, font-size, 0.0625rem, 0, 100);
+.generate(g, gap, 0.0625rem, 0, 100);
+.generate(rg, row-gap, 0.0625rem, 0, 100);
+.generate(cg, column-gap, 0.0625rem, 0, 100);

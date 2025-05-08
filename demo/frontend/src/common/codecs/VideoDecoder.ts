@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {cloneFrame} from '@/common/codecs/WebCodecUtils';
 import {FileStream} from '@/common/utils/FileUtils';
@@ -19,16 +21,26 @@ import {
   createFile,
   DataStream,
   MP4ArrayBuffer,
+  MP4AudioTrack,
   MP4File,
   MP4Sample,
   MP4VideoTrack,
 } from 'mp4box';
 import {isAndroid, isChrome, isEdge, isWindows} from 'react-device-detect';
+import Logger from '../logger/Logger';
 
 export type ImageFrame = {
   bitmap: VideoFrame;
   timestamp: number;
   duration: number;
+};
+
+export type DecodedAudio = {
+  data: AudioData[];
+  codec: string;
+  sampleRate: number;
+  channelCount: number;
+  timescale: number;
 };
 
 export type DecodedVideo = {
@@ -37,7 +49,44 @@ export type DecodedVideo = {
   frames: ImageFrame[];
   numFrames: number;
   fps: number;
+  audio?: DecodedAudio;
 };
+
+async function decodeAudioSamples(
+  samples: MP4Sample[],
+  audioTrack: MP4AudioTrack,
+): Promise<AudioData[]> {
+  const audioDataList: AudioData[] = [];
+  const decoder = new AudioDecoder({
+    output: (audioData: AudioData) => audioDataList.push(audioData),
+    error: e => Logger.error(e),
+  });
+  const config: AudioDecoderConfig = {
+    codec: audioTrack.codec,
+    sampleRate: audioTrack.audio.sample_rate,
+    numberOfChannels: audioTrack.audio.channel_count,
+  };
+
+  if (!(await AudioDecoder.isConfigSupported(config))) {
+    throw new Error(`Audio codec ${audioTrack.codec} not supported`);
+  }
+
+  decoder.configure(config);
+
+  for (const sample of samples) {
+    decoder.decode(
+      new EncodedAudioChunk({
+        type: sample.is_sync ? 'key' : 'delta',
+        timestamp: (sample.cts * 1_000_000) / sample.timescale,
+        data: sample.data,
+      }),
+    );
+  }
+  await decoder.flush();
+  decoder.close();
+
+  return audioDataList;
+}
 
 function decodeInternal(
   identifier: string,
@@ -47,10 +96,12 @@ function decodeInternal(
   return new Promise((resolve, reject) => {
     const imageFrames: ImageFrame[] = [];
     const globalSamples: MP4Sample[] = [];
+    const audioSamples: MP4Sample[] = [];
 
     let decoder: VideoDecoder;
-
     let track: MP4VideoTrack | null = null;
+    let audioTrack: MP4AudioTrack | null = null;
+
     const mp4File = createFile();
 
     mp4File.onError = reject;
@@ -74,6 +125,19 @@ function decodeInternal(
       if (track == null) {
         reject(new Error(`${identifier} does not contain a video track`));
         return;
+      }
+
+      if (info.audioTracks.length > 0) {
+        audioTrack = info.audioTracks[0];
+        mp4File.setExtractionOptions(audioTrack.id, null, {
+          nbSamples: Infinity,
+        });
+      }
+
+      if (audioTrack) {
+        mp4File.setExtractionOptions(audioTrack.id, null, {
+          nbSamples: Infinity,
+        });
       }
 
       const timescale = track.timescale;
@@ -161,6 +225,15 @@ function decodeInternal(
               fps:
                 (saveTrack.nb_samples / saveTrack.duration) *
                 saveTrack.timescale,
+              audio: audioTrack
+                ? {
+                    data: await decodeAudioSamples(audioSamples, audioTrack),
+                    codec: audioTrack.codec,
+                    sampleRate: audioTrack.audio.sample_rate,
+                    channelCount: audioTrack.audio.channel_count,
+                    timescale: audioTrack.timescale,
+                  }
+                : undefined,
             });
           }
         },
@@ -220,19 +293,22 @@ function decodeInternal(
       _user: unknown,
       samples: MP4Sample[],
     ) => {
-      for (const sample of samples) {
-        globalSamples.push(sample);
-        decoder.decode(
-          new EncodedVideoChunk({
-            type: sample.is_sync ? 'key' : 'delta',
-            timestamp: (sample.cts * 1_000_000) / sample.timescale,
-            duration: (sample.duration * 1_000_000) / sample.timescale,
-            data: sample.data,
-          }),
-        );
+      if (_id === track?.id) {
+        for (const sample of samples) {
+          globalSamples.push(sample);
+          decoder.decode(
+            new EncodedVideoChunk({
+              type: sample.is_sync ? 'key' : 'delta',
+              timestamp: (sample.cts * 1_000_000) / sample.timescale,
+              duration: (sample.duration * 1_000_000) / sample.timescale,
+              data: sample.data,
+            }),
+          );
+        }
+        await decoder.flush();
+      } else if (_id === audioTrack?.id) {
+        audioSamples.push(...samples);
       }
-      await decoder.flush();
-      decoder.close();
     };
 
     onReady(mp4File);
