@@ -4,9 +4,35 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import os
+import sys
 import threading
 import time
 from typing import Any, Generator
+
+# 创建日志目录
+log_dir = "/tmp/logs"
+os.makedirs(log_dir, exist_ok=True)
+
+# 配置日志格式
+log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# 创建文件处理器
+file_handler = logging.FileHandler(f"{log_dir}/sam2_app.log")
+file_handler.setFormatter(log_format)
+
+# 创建控制台处理器
+console_handler = logging.StreamHandler(sys.stderr)
+console_handler.setFormatter(log_format)
+
+# 配置根日志器
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
+
+# 添加一条启动日志
+logging.info("================ SAM2 应用启动 =================")
 
 from app_conf import (
     GALLERY_PATH,
