@@ -11,7 +11,7 @@ import time
 from typing import Any, Generator
 
 # 创建日志目录
-log_dir = "/tmp/logs"
+log_dir = "demo/data/logs"
 os.makedirs(log_dir, exist_ok=True)
 
 # 配置日志格式
