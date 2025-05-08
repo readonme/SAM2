@@ -49,7 +49,7 @@ class InferenceAPI:
 
         self.session_states: Dict[str, Any] = {}
         self.score_thresh = 0
-        self.session_timeout = 3600  # 会话超时时间（秒）
+        self.session_timeout = 300  # 会话超时时间（秒）
         self.cleanup_interval = 300  # 清理检查间隔（秒）
         self.last_cleanup_time = time.time()
         self.cleanup_lock = Lock()

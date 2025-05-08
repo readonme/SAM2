@@ -11,14 +11,17 @@ import time
 from typing import Any, Generator
 
 # 创建日志目录
-log_dir = "demo/data/logs"
+log_dir = "/data/logs"
 os.makedirs(log_dir, exist_ok=True)
+
+# 生成时间后缀 (格式: yyyymmddhhmm)
+current_time = time.strftime("%Y%m%d%H%M")
 
 # 配置日志格式
 log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-# 创建文件处理器
-file_handler = logging.FileHandler(f"{log_dir}/sam2_app.log")
+# 创建文件处理器，文件名带时间后缀
+file_handler = logging.FileHandler(f"{log_dir}/sam2_app_{current_time}.log")
 file_handler.setFormatter(log_format)
 
 # 创建控制台处理器
