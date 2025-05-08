@@ -104,18 +104,10 @@ class InferenceAPI:
             return contextlib.nullcontext()
             
     def _check_and_cleanup_sessions(self, force=False):
-        """定期检查并清理过期的会话"""
+        """检查并清理过期的会话"""
         current_time = time.time()
-        
-        # 如果距离上次清理时间不足清理间隔，且不是强制清理，则跳过
-        if not force and (current_time - self.last_cleanup_time < self.cleanup_interval):
-            return
             
         with self.cleanup_lock:
-            # 再次检查，避免多线程问题
-            if not force and (current_time - self.last_cleanup_time < self.cleanup_interval):
-                return
-                
             expired_sessions = []
             for session_id, session in list(self.session_states.items()):
                 # 检查会话是否已超时
