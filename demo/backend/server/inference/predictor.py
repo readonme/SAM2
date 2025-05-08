@@ -6,10 +6,12 @@
 import contextlib
 import logging
 import os
+import time
 import uuid
 from pathlib import Path
-from threading import Lock
-from typing import Any, Dict, Generator, List
+from threading import Lock, Thread
+from typing import Any, Dict, Generator, List, Optional
+import gc
 
 import numpy as np
 import torch
@@ -47,6 +49,10 @@ class InferenceAPI:
 
         self.session_states: Dict[str, Any] = {}
         self.score_thresh = 0
+        self.session_timeout = 3600  # 会话超时时间（秒）
+        self.cleanup_interval = 300  # 清理检查间隔（秒）
+        self.last_cleanup_time = time.time()
+        self.cleanup_lock = Lock()
 
         if MODEL_SIZE == "tiny":
             checkpoint = Path(APP_ROOT) / "checkpoints/sam2.1_hiera_tiny.pt"
@@ -96,13 +102,48 @@ class InferenceAPI:
             return torch.autocast("cuda", dtype=torch.bfloat16)
         else:
             return contextlib.nullcontext()
+            
+    def _check_and_cleanup_sessions(self, force=False):
+        """定期检查并清理过期的会话"""
+        current_time = time.time()
+        
+        # 如果距离上次清理时间不足清理间隔，且不是强制清理，则跳过
+        if not force and (current_time - self.last_cleanup_time < self.cleanup_interval):
+            return
+            
+        with self.cleanup_lock:
+            # 再次检查，避免多线程问题
+            if not force and (current_time - self.last_cleanup_time < self.cleanup_interval):
+                return
+                
+            expired_sessions = []
+            for session_id, session in list(self.session_states.items()):
+                # 检查会话是否已超时
+                if current_time - session.get('last_active_time', 0) > self.session_timeout:
+                    expired_sessions.append(session_id)
+            
+            # 清理过期会话
+            for session_id in expired_sessions:
+                self.__clear_session_state(session_id, reason="timeout")
+                
+            self.last_cleanup_time = current_time
+            
+            # 主动触发垃圾回收
+            gc.collect()
+            if self.device.type == "cuda":
+                torch.cuda.empty_cache()
+                
+            logger.info(f"Session cleanup completed. Removed {len(expired_sessions)} expired sessions; {self.__get_session_stats()}")
 
     def start_session(self, request: StartSessionRequest) -> StartSessionResponse:
         with self.autocast_context(), self.inference_lock:
             session_id = str(uuid.uuid4())
-            # for MPS devices, we offload the video frames to CPU by default to avoid
-            # memory fragmentation in MPS (which sometimes crashes the entire process)
-            offload_video_to_cpu = self.device.type == "mps"
+            # 对于所有设备类型，默认都将视频帧卸载到CPU，避免GPU内存碎片和泄露
+            # 只有在明确指定不卸载时才保留在GPU中
+            offload_video_to_cpu = True
+            if hasattr(request, 'keep_frames_on_gpu') and request.keep_frames_on_gpu:
+                offload_video_to_cpu = self.device.type != "cuda"
+                
             inference_state = self.predictor.init_state(
                 request.path,
                 offload_video_to_cpu=offload_video_to_cpu,
@@ -110,7 +151,12 @@ class InferenceAPI:
             self.session_states[session_id] = {
                 "canceled": False,
                 "state": inference_state,
+                "last_active_time": time.time(),  # 记录会话创建时间
+                "offload_video_to_cpu": offload_video_to_cpu  # 记录是否将视频帧卸载到CPU
             }
+            
+            # 记录当前内存使用情况
+            logger.info(f"Started new session {session_id}; {self.__get_session_stats()}")
             return StartSessionResponse(session_id=session_id)
 
     def close_session(self, request: CloseSessionRequest) -> CloseSessionResponse:
@@ -121,36 +167,48 @@ class InferenceAPI:
         self, request: AddPointsRequest, test: str = ""
     ) -> PropagateDataResponse:
         with self.autocast_context(), self.inference_lock:
-            session = self.__get_session(request.session_id)
-            inference_state = session["state"]
+            try:
+                session = self.__get_session(request.session_id)
+                # 更新会话最后活动时间
+                session["last_active_time"] = time.time()
+                inference_state = session["state"]
 
-            frame_idx = request.frame_index
-            obj_id = request.object_id
-            points = request.points
-            labels = request.labels
-            clear_old_points = request.clear_old_points
+                frame_idx = request.frame_index
+                obj_id = request.object_id
+                points = request.points
+                labels = request.labels
+                clear_old_points = request.clear_old_points
 
-            # add new prompts and instantly get the output on the same frame
-            frame_idx, object_ids, masks = self.predictor.add_new_points_or_box(
-                inference_state=inference_state,
-                frame_idx=frame_idx,
-                obj_id=obj_id,
-                points=points,
-                labels=labels,
-                clear_old_points=clear_old_points,
-                normalize_coords=False,
-            )
+                # add new prompts and instantly get the output on the same frame
+                frame_idx, object_ids, masks = self.predictor.add_new_points_or_box(
+                    inference_state=inference_state,
+                    frame_idx=frame_idx,
+                    obj_id=obj_id,
+                    points=points,
+                    labels=labels,
+                    clear_old_points=clear_old_points,
+                    normalize_coords=False,
+                )
 
-            masks_binary = (masks > self.score_thresh)[:, 0].cpu().numpy()
+                # 确保将张量移动到CPU，并转换为numpy数组
+                masks_binary = (masks > self.score_thresh)[:, 0].cpu().numpy()
 
-            rle_mask_list = self.__get_rle_mask_list(
-                object_ids=object_ids, masks=masks_binary
-            )
+                rle_mask_list = self.__get_rle_mask_list(
+                    object_ids=object_ids, masks=masks_binary
+                )
+                
+                # 显式释放不再需要的张量
+                del masks
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
 
-            return PropagateDataResponse(
-                frame_index=frame_idx,
-                results=rle_mask_list,
-            )
+                return PropagateDataResponse(
+                    frame_index=frame_idx,
+                    results=rle_mask_list,
+                )
+            except Exception as e:
+                logger.error(f"Error in add_points: {e}")
+                raise
 
     def add_mask(self, request: AddMaskRequest) -> PropagateDataResponse:
         """
@@ -290,6 +348,8 @@ class InferenceAPI:
 
             try:
                 session = self.__get_session(session_id)
+                # 更新会话最后活动时间
+                session["last_active_time"] = time.time()
                 session["canceled"] = False
 
                 inference_state = session["state"]
@@ -297,6 +357,10 @@ class InferenceAPI:
                     raise ValueError(
                         f"invalid propagation direction: {propagation_direction}"
                     )
+
+                # 记录处理前的内存使用情况
+                pre_mem_stats = self.__get_memory_stats()
+                processed_frames = 0
 
                 # First doing the forward propagation
                 if propagation_direction in ["both", "forward"]:
@@ -307,9 +371,13 @@ class InferenceAPI:
                         reverse=False,
                     ):
                         if session["canceled"]:
+                            # 清理资源并返回
+                            if self.device.type == "cuda":
+                                torch.cuda.empty_cache()
                             return None
 
                         frame_idx, obj_ids, video_res_masks = outputs
+                        # 确保张量移动到CPU
                         masks_binary = (
                             (video_res_masks > self.score_thresh)[:, 0].cpu().numpy()
                         )
@@ -317,6 +385,17 @@ class InferenceAPI:
                         rle_mask_list = self.__get_rle_mask_list(
                             object_ids=obj_ids, masks=masks_binary
                         )
+                        
+                        # 显式释放不再需要的张量
+                        del video_res_masks
+                        processed_frames += 1
+                        
+                        # 每处理10帧，主动清理一次缓存
+                        if processed_frames % 10 == 0 and self.device.type == "cuda":
+                            torch.cuda.empty_cache()
+                            
+                        # 更新会话最后活动时间
+                        session["last_active_time"] = time.time()
 
                         yield PropagateDataResponse(
                             frame_index=frame_idx,
@@ -332,9 +411,13 @@ class InferenceAPI:
                         reverse=True,
                     ):
                         if session["canceled"]:
+                            # 清理资源并返回
+                            if self.device.type == "cuda":
+                                torch.cuda.empty_cache()
                             return None
 
                         frame_idx, obj_ids, video_res_masks = outputs
+                        # 确保张量移动到CPU
                         masks_binary = (
                             (video_res_masks > self.score_thresh)[:, 0].cpu().numpy()
                         )
@@ -342,16 +425,33 @@ class InferenceAPI:
                         rle_mask_list = self.__get_rle_mask_list(
                             object_ids=obj_ids, masks=masks_binary
                         )
+                        
+                        # 显式释放不再需要的张量
+                        del video_res_masks
+                        processed_frames += 1
+                        
+                        # 每处理10帧，主动清理一次缓存
+                        if processed_frames % 10 == 0 and self.device.type == "cuda":
+                            torch.cuda.empty_cache()
+                            
+                        # 更新会话最后活动时间
+                        session["last_active_time"] = time.time()
 
                         yield PropagateDataResponse(
                             frame_index=frame_idx,
                             results=rle_mask_list,
                         )
             finally:
+                # 处理完成后主动清理GPU缓存
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
+                    
                 # Log upon completion (so that e.g. we can see if two propagations happen in parallel).
                 # Using `finally` here to log even when the tracking is aborted with GeneratorExit.
+                post_mem_stats = self.__get_memory_stats()
                 logger.info(
-                    f"propagation ended in session {session_id}; {self.__get_session_stats()}"
+                    f"propagation ended in session {session_id}; processed {processed_frames} frames; "
+                    f"memory before: {pre_mem_stats}, after: {post_mem_stats}; {self.__get_session_stats()}"
                 )
 
     def cancel_propagate_in_video(
@@ -396,25 +496,46 @@ class InferenceAPI:
             )
         return session
 
+    def __get_memory_stats(self):
+        """获取当前内存使用情况的统计信息"""
+        if self.device.type == "cuda":
+            return {
+                "allocated_mb": torch.cuda.memory_allocated() // 1024**2,
+                "reserved_mb": torch.cuda.memory_reserved() // 1024**2,
+                "max_allocated_mb": torch.cuda.max_memory_allocated() // 1024**2,
+                "max_reserved_mb": torch.cuda.max_memory_reserved() // 1024**2
+            }
+        else:
+            return {"device": self.device.type, "stats": "not available"}
+    
     def __get_session_stats(self):
         """Get a statistics string for live sessions and their GPU usage."""
         # print both the session ids and their video frame numbers
-        live_session_strs = [
-            f"'{session_id}' ({session['state']['num_frames']} frames, "
-            f"{len(session['state']['obj_ids'])} objects)"
-            for session_id, session in self.session_states.items()
-        ]
-        session_stats_str = (
-            "Test String Here - -"
-            f"live sessions: [{', '.join(live_session_strs)}], GPU memory: "
-            f"{torch.cuda.memory_allocated() // 1024**2} MiB used and "
-            f"{torch.cuda.memory_reserved() // 1024**2} MiB reserved"
-            f" (max over time: {torch.cuda.max_memory_allocated() // 1024**2} MiB used "
-            f"and {torch.cuda.max_memory_reserved() // 1024**2} MiB reserved)"
-        )
+        live_session_strs = []
+        for session_id, session in self.session_states.items():
+            last_active = time.time() - session.get("last_active_time", 0)
+            offload_status = "offloaded" if session.get("offload_video_to_cpu", False) else "on GPU"
+            live_session_strs.append(
+                f"'{session_id}' ({session['state']['num_frames']} frames, "
+                f"{len(session['state']['obj_ids'])} objects, "
+                f"last active: {last_active:.1f}s ago, frames: {offload_status})"
+            )
+            
+        mem_stats = self.__get_memory_stats()
+        if self.device.type == "cuda":
+            session_stats_str = (
+                f"live sessions: [{', '.join(live_session_strs)}], GPU memory: "
+                f"{mem_stats['allocated_mb']} MiB used and "
+                f"{mem_stats['reserved_mb']} MiB reserved"
+                f" (max over time: {mem_stats['max_allocated_mb']} MiB used "
+                f"and {mem_stats['max_reserved_mb']} MiB reserved)"
+            )
+        else:
+            session_stats_str = f"live sessions: [{', '.join(live_session_strs)}], Device: {self.device.type}"
+            
         return session_stats_str
 
-    def __clear_session_state(self, session_id: str) -> bool:
+    def __clear_session_state(self, session_id: str, reason: str = "user_request") -> bool:
         session = self.session_states.pop(session_id, None)
         if session is None:
             logger.warning(
@@ -423,5 +544,28 @@ class InferenceAPI:
             )
             return False
         else:
-            logger.info(f"removed session {session_id}; {self.__get_session_stats()}")
+            # 获取清理前的内存统计
+            pre_mem_stats = self.__get_memory_stats()
+            
+            # 显式清理会话中的资源
+            if "state" in session:
+                # 尝试释放会话状态中的所有张量
+                for key, value in session["state"].items():
+                    if isinstance(value, torch.Tensor):
+                        del value
+                del session["state"]
+            
+            # 强制进行垃圾回收
+            gc.collect()
+            if self.device.type == "cuda":
+                torch.cuda.empty_cache()
+            
+            # 获取清理后的内存统计
+            post_mem_stats = self.__get_memory_stats()
+            
+            logger.info(
+                f"removed session {session_id} (reason: {reason}); "
+                f"memory before: {pre_mem_stats}, after: {post_mem_stats}; "
+                f"{self.__get_session_stats()}"
+            )
             return True

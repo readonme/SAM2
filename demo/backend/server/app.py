@@ -4,6 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import threading
+import time
 from typing import Any, Generator
 
 from app_conf import (
@@ -33,6 +35,27 @@ videos = preload_data()
 set_videos(videos)
 
 inference_api = InferenceAPI()
+
+# 定时清理会话的线程
+def session_cleanup_thread():
+    """
+    定时清理过期会话的后台线程
+    """
+    while True:
+        try:
+            # 调用清理方法
+            inference_api._check_and_cleanup_sessions(force=True)
+            # 每5分钟执行一次清理
+            time.sleep(300)
+        except Exception as e:
+            logger.error(f"Error in session cleanup thread: {e}")
+            # 即使出错也继续运行
+            time.sleep(60)
+
+# 启动清理线程
+cleanup_thread = threading.Thread(target=session_cleanup_thread, daemon=True)
+cleanup_thread.start()
+logger.info("Started session cleanup background thread")
 
 
 @app.route("/healthy")
@@ -137,4 +160,6 @@ app.add_url_rule(
 
 
 if __name__ == "__main__":
+    # 在主线程中启动Flask应用
     app.run(host="0.0.0.0", port=5000)
+    # 注意：当Flask应用停止时，由于cleanup_thread是daemon线程，它会自动终止
