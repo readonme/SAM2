@@ -59,7 +59,7 @@ class InferenceAPI:
         self.cleanup_lock = Lock()
         
         # 会话队列相关配置
-        self.max_concurrent_sessions = 2  # 最大并发会话数
+        self.max_concurrent_sessions = 10  # 最大并发会话数
         self.session_queue = []  # 等待处理的会话队列 [(session_id, request_data, enqueue_time)]
         self.queue_lock = Lock()  # 队列锁
         self.active_sessions = set()  # 当前活跃的会话ID集合
