@@ -69,15 +69,6 @@ class InferenceAPI:
         # 初始化队列管理器
         self.queue_manager = QueueManager()
         
-        # 启动定时清理线程
-        self.cleanup_thread = Thread(target=self._cleanup_thread, daemon=True)
-        self.cleanup_thread.start()
-        
-        # 启动队列持久化线程
-        self.persistence_interval = 30  # 持久化间隔（秒）
-        self.persistence_thread = Thread(target=self._persistence_thread, daemon=True)
-        self.persistence_thread.start()
-        
         # 从文件恢复队列状态
         self._restore_queue_state()
 
@@ -130,26 +121,6 @@ class InferenceAPI:
         else:
             return contextlib.nullcontext()
             
-    def _cleanup_thread(self):
-        """定时清理线程，定期检查并清理过期会话"""
-        while True:
-            try:
-                # 每隔cleanup_interval秒检查一次
-                time.sleep(self.cleanup_interval)
-                self._check_and_cleanup_sessions()
-            except Exception as e:
-                logger.error(f"Error in cleanup thread: {e}")
-                
-    def _persistence_thread(self):
-        """定时持久化线程，定期将队列状态保存到文件"""
-        while True:
-            try:
-                # 每隔persistence_interval秒保存一次
-                time.sleep(self.persistence_interval)
-                self._persist_queue_state()
-            except Exception as e:
-                logger.error(f"Error in persistence thread: {e}")
-                
     def _persist_queue_state(self):
         """将排队中的会话持久化到文件"""
         with self.queue_lock:
@@ -201,6 +172,7 @@ class InferenceAPI:
     def _check_and_cleanup_sessions(self, force=False):
         """检查并清理过期的会话"""
         current_time = time.time()
+        queue_updated = False
             
         with self.cleanup_lock:
             expired_sessions = []
@@ -211,6 +183,14 @@ class InferenceAPI:
             
             # 清理过期会话
             for session_id in expired_sessions:
+                # 检查是否在队列中
+                with self.queue_lock:
+                    for i, (queued_id, _, _) in enumerate(self.session_queue):
+                        if queued_id == session_id:
+                            self.session_queue.pop(i)
+                            queue_updated = True
+                            break
+                
                 self.__clear_session_state(session_id, reason="timeout")
                 
             self.last_cleanup_time = current_time
@@ -221,6 +201,11 @@ class InferenceAPI:
                 torch.cuda.empty_cache()
                 
             logger.info(f"Session cleanup completed. Removed {len(expired_sessions)} expired sessions; {self.__get_session_stats()}")
+        
+        # 如果队列有更新，持久化队列状态
+        if queue_updated:
+            with self.queue_lock:
+                self._persist_queue_state()
             
         # 处理队列中的会话
         self._process_queue()
@@ -252,7 +237,7 @@ class InferenceAPI:
             # 异步处理会话
             Thread(target=self._process_session, args=(session_id, request_data), daemon=True).start()
             
-            # 持久化队列状态
+            # 队列已修改，触发持久化
             self._persist_queue_state()
             
             logger.info(f"Started processing session {session_id} from queue; {len(self.session_queue)} sessions remaining in queue")
@@ -348,7 +333,7 @@ class InferenceAPI:
                 # 估算等待时间（基于队列位置和平均处理时间）
                 estimated_wait_time = int(queue_position * self.avg_processing_time)
                 
-                # 持久化队列状态
+                # 队列已修改，触发持久化
                 self._persist_queue_state()
                 
                 logger.info(f"Session {session_id} queued at position {queue_position}; estimated wait time: {estimated_wait_time}s")
@@ -366,9 +351,6 @@ class InferenceAPI:
                 
                 # 异步处理会话
                 Thread(target=self._process_session, args=(session_id, request), daemon=True).start()
-                
-                # 持久化队列状态
-                self._persist_queue_state()
                 
                 logger.info(f"Started processing session {session_id} immediately; {self.__get_session_stats()}")
                 
@@ -400,11 +382,9 @@ class InferenceAPI:
             if session_id in self.session_metadata:
                 self.session_metadata[session_id]['status'] = 'completed'
             
-            # 持久化队列状态
-            self._persist_queue_state()
-                
-            # 如果会话在队列中被移除，尝试处理下一个会话
+            # 队列已修改，触发持久化
             if queue_updated:
+                self._persist_queue_state()
                 logger.info(f"Removed session {session_id} from queue")
                 # 异步处理队列，避免在当前请求中阻塞
                 Thread(target=self._process_queue, daemon=True).start()
