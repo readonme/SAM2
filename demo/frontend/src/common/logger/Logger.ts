@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import {logButtonClick} from '../apis/report';
 import {LOG_LEVEL} from './LogEnvironment';
 
 /** Signature of a logging function */
@@ -43,8 +44,17 @@ export class ConsoleLogger implements Logger {
   constructor(options?: {level?: LogLevel}) {
     const {level} = options || {};
 
-    // eslint-disable-next-line no-console
-    this.error = console.error.bind(console);
+    this.error = (message?: unknown, ...optionalParams: unknown[]) => {
+      // eslint-disable-next-line no-console
+      console.error(message, ...optionalParams);
+      // report to server
+      logButtonClick({
+        button: 'error',
+        extra: JSON.stringify({
+          error: message ?? 'Unknown error',
+        }),
+      });
+    };
 
     if (level === 'error') {
       this.debug = NO_OP;

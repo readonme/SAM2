@@ -1,6 +1,6 @@
-type LogButtonParams = {
-  button: string;
-};
+type LogButtonParams =
+  | {button: 'error'; extra: string}
+  | {button: string; extra?: never};
 
 type ApiResponse = {
   success: boolean;
