@@ -121,12 +121,21 @@ class InferenceAPI:
         else:
             return contextlib.nullcontext()
             
-    def _persist_queue_state(self):
-        """将排队中的会话持久化到文件"""
-        with self.queue_lock:
-            # 只保存排队中的会话数据
+    def _persist_queue_state(self, already_has_lock=False):
+        """将排队中的会话持久化到文件
+        
+        Args:
+            already_has_lock: 是否已经持有queue_lock锁，避免重复加锁导致死锁
+        """
+        if already_has_lock:
+            # 调用方已持有锁，直接执行保存操作
             self.queue_manager.save_queue(self.session_queue)
-            
+        else:
+            # 调用方未持有锁，需要获取锁
+            with self.queue_lock:
+                # 只保存排队中的会话数据
+                self.queue_manager.save_queue(self.session_queue)
+        
         logger.debug("排队会话数据已持久化到文件")
         
     def _restore_queue_state(self):
@@ -213,7 +222,7 @@ class InferenceAPI:
         # 如果队列有更新，持久化队列状态
         if queue_updated:
             with self.queue_lock:
-                self._persist_queue_state()
+                self._persist_queue_state(already_has_lock=True)
             
         # 在锁外处理队列中的会话
         if queue_updated:
@@ -233,7 +242,8 @@ class InferenceAPI:
             if session_id in self.active_sessions or session_id not in self.session_metadata:
                 logger.warning(f"Session {session_id} already processed or metadata missing")
                 # 继续处理下一个会话
-                self._process_queue()
+                # 注意：这里递归调用可能导致栈溢出，改为在锁释放后启动新线程处理
+                Thread(target=self._process_queue, daemon=True).start()
                 return
                 
             # 将会话添加到活跃会话集合
@@ -243,13 +253,13 @@ class InferenceAPI:
             self.session_metadata[session_id]['status'] = 'processing'
             self.session_metadata[session_id]['processing_start_time'] = time.time()
             
-            # 异步处理会话
-            Thread(target=self._process_session, args=(session_id, request_data), daemon=True).start()
+            # 队列已修改，触发持久化（传递already_has_lock=True表示已持有锁）
+            self._persist_queue_state(already_has_lock=True)
+        
+        # 在锁外启动异步处理会话线程，避免长时间占用锁
+        Thread(target=self._process_session, args=(session_id, request_data), daemon=True).start()
             
-            # 队列已修改，触发持久化
-            self._persist_queue_state()
-            
-            logger.info(f"Started processing session {session_id} from queue; {len(self.session_queue)} sessions remaining in queue")
+        logger.info(f"Started processing session {session_id} from queue; {len(self.session_queue)} sessions remaining in queue")
             
     def _process_session(self, session_id, request_data):
         """异步处理会话"""
@@ -357,9 +367,8 @@ class InferenceAPI:
                 estimated_wait_time = int(queue_position * self.avg_processing_time)
                 logger.info(f"会话 {session_id} 加入队列，位置: {queue_position}，估计等待时间: {estimated_wait_time}秒")
                 
-                # 队列已修改，触发持久化
-                logger.info(f"触发队列状态持久化")
-                self._persist_queue_state()
+                # 队列已修改，触发持久化（传递already_has_lock=True表示已持有锁）
+                self._persist_queue_state(already_has_lock=True)
             
             logger.info(f"会话 {session_id} 已成功排队，位置: {queue_position}，估计等待时间: {estimated_wait_time}秒")
             
@@ -426,10 +435,10 @@ class InferenceAPI:
                 self.session_metadata[session_id]['status'] = 'completed'
                 logger.info(f"更新会话 {session_id} 元数据状态为 'completed'")
             
-            # 队列已修改，触发持久化
+            # 队列已修改，触发持久化（传递already_has_lock=True表示已持有锁）
             if queue_updated:
                 logger.info(f"队列已更新，触发队列状态持久化")
-                self._persist_queue_state()
+                self._persist_queue_state(already_has_lock=True)
                 logger.info(f"已从队列中移除会话 {session_id}")
         
         # 在锁外启动异步处理队列线程
