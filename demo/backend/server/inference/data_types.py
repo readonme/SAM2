@@ -29,6 +29,7 @@ class StartSessionRequest(BaseRequest):
     type: str
     path: str
     session_id: Optional[str] = None
+    video_metadata: Optional[Dict] = None  # 存储视频元数据，以便在队列处理时使用
 
 
 @dataclass_json
@@ -124,6 +125,9 @@ class CancelPropagateInVideoRequest(BaseRequest):
 @dataclass
 class StartSessionResponse:
     session_id: str
+    queued: bool = False  # 是否进入队列
+    queue_position: int = 0  # 队列位置
+    estimated_wait_time: int = 0  # 预计等待时间（秒）
 
 
 @dataclass_json
@@ -180,6 +184,22 @@ class RemoveObjectResponse:
 @dataclass
 class CancelPorpagateResponse:
     success: bool
+
+
+@dataclass_json
+@dataclass
+class QueueStatusRequest(BaseRequest):
+    type: str
+    session_id: str
+
+
+@dataclass_json
+@dataclass
+class QueueStatusResponse:
+    session_id: str
+    status: str  # 'queued', 'processing', 'completed', 'not_found'
+    position: int  # 队列中的位置，如果正在处理则为0
+    estimated_wait_time: int  # 预计等待时间（秒）
 
 
 @dataclass_json

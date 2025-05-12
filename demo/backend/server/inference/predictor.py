@@ -10,12 +10,14 @@ import time
 import uuid
 from pathlib import Path
 from threading import Lock, Thread
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Tuple
 import gc
+import json
 
 import numpy as np
 import torch
 from app_conf import APP_ROOT, MODEL_SIZE
+from data.queue_manager import QueueManager
 from inference.data_types import (
     AddMaskRequest,
     AddPointsRequest,
@@ -30,6 +32,8 @@ from inference.data_types import (
     PropagateDataResponse,
     PropagateDataValue,
     PropagateInVideoRequest,
+    QueueStatusRequest,
+    QueueStatusResponse,
     RemoveObjectRequest,
     RemoveObjectResponse,
     StartSessionRequest,
@@ -53,6 +57,29 @@ class InferenceAPI:
         self.cleanup_interval = 300  # 清理检查间隔（秒）
         self.last_cleanup_time = time.time()
         self.cleanup_lock = Lock()
+        
+        # 会话队列相关配置
+        self.max_concurrent_sessions = 2  # 最大并发会话数
+        self.session_queue = []  # 等待处理的会话队列 [(session_id, request_data, enqueue_time)]
+        self.queue_lock = Lock()  # 队列锁
+        self.active_sessions = set()  # 当前活跃的会话ID集合
+        self.session_metadata = {}  # 存储会话元数据，包括排队时间、视频路径等
+        self.avg_processing_time = 60  # 平均处理时间（秒），初始值为60秒
+        
+        # 初始化队列管理器
+        self.queue_manager = QueueManager()
+        
+        # 启动定时清理线程
+        self.cleanup_thread = Thread(target=self._cleanup_thread, daemon=True)
+        self.cleanup_thread.start()
+        
+        # 启动队列持久化线程
+        self.persistence_interval = 30  # 持久化间隔（秒）
+        self.persistence_thread = Thread(target=self._persistence_thread, daemon=True)
+        self.persistence_thread.start()
+        
+        # 从文件恢复队列状态
+        self._restore_queue_state()
 
         if MODEL_SIZE == "tiny":
             checkpoint = Path(APP_ROOT) / "checkpoints/sam2.1_hiera_tiny.pt"
@@ -103,6 +130,74 @@ class InferenceAPI:
         else:
             return contextlib.nullcontext()
             
+    def _cleanup_thread(self):
+        """定时清理线程，定期检查并清理过期会话"""
+        while True:
+            try:
+                # 每隔cleanup_interval秒检查一次
+                time.sleep(self.cleanup_interval)
+                self._check_and_cleanup_sessions()
+            except Exception as e:
+                logger.error(f"Error in cleanup thread: {e}")
+                
+    def _persistence_thread(self):
+        """定时持久化线程，定期将队列状态保存到文件"""
+        while True:
+            try:
+                # 每隔persistence_interval秒保存一次
+                time.sleep(self.persistence_interval)
+                self._persist_queue_state()
+            except Exception as e:
+                logger.error(f"Error in persistence thread: {e}")
+                
+    def _persist_queue_state(self):
+        """将排队中的会话持久化到文件"""
+        with self.queue_lock:
+            # 只保存排队中的会话数据
+            self.queue_manager.save_queue(self.session_queue)
+            
+        logger.debug("排队会话数据已持久化到文件")
+        
+    def _restore_queue_state(self):
+        """从文件恢复排队中的会话"""
+        try:
+            # 加载队列数据
+            loaded_queue = self.queue_manager.load_queue()
+            if loaded_queue:
+                # 恢复队列数据需要重新构建请求对象
+                restored_queue = []
+                for session_id, request_dict, enqueue_time in loaded_queue:
+                    # 根据请求类型构建不同的请求对象
+                    request_type = request_dict.get('type', '')
+                    
+                    if request_type == 'start_session':
+                        from inference.data_types import StartSessionRequest
+                        request = StartSessionRequest.from_dict(request_dict)
+                        
+                        # 创建会话元数据
+                        if session_id not in self.session_metadata:
+                            self.session_metadata[session_id] = {
+                                'path': request.path,
+                                'enqueue_time': enqueue_time,
+                                'status': 'queued',
+                                'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
+                            }
+                    else:
+                        # 如果无法识别请求类型，跳过该条记录
+                        logger.warning(f"无法识别的请求类型: {request_type}，跳过恢复")
+                        continue
+                    
+                    restored_queue.append((session_id, request, enqueue_time))
+                
+                self.session_queue = restored_queue
+                logger.info(f"已从文件恢复排队会话数据，共 {len(self.session_queue)} 条记录")
+                
+            # 恢复完成后，立即处理队列
+            self._process_queue()
+            
+        except Exception as e:
+            logger.error(f"恢复队列状态失败: {e}")
+    
     def _check_and_cleanup_sessions(self, force=False):
         """检查并清理过期的会话"""
         current_time = time.time()
@@ -126,33 +221,196 @@ class InferenceAPI:
                 torch.cuda.empty_cache()
                 
             logger.info(f"Session cleanup completed. Removed {len(expired_sessions)} expired sessions; {self.__get_session_stats()}")
+            
+        # 处理队列中的会话
+        self._process_queue()
+        
+    def _process_queue(self):
+        """处理队列中的会话，如果有空闲资源则启动下一个会话"""
+        with self.queue_lock:
+            # 如果没有等待的会话或已达到最大并发数，则直接返回
+            if not self.session_queue or len(self.active_sessions) >= self.max_concurrent_sessions:
+                return
+                
+            # 获取队列中的下一个会话
+            session_id, request_data, enqueue_time = self.session_queue.pop(0)
+            
+            # 检查会话是否已存在（可能是由于某些原因已经被处理）
+            if session_id in self.active_sessions or session_id not in self.session_metadata:
+                logger.warning(f"Session {session_id} already processed or metadata missing")
+                # 继续处理下一个会话
+                self._process_queue()
+                return
+                
+            # 将会话添加到活跃会话集合
+            self.active_sessions.add(session_id)
+            
+            # 更新会话元数据
+            self.session_metadata[session_id]['status'] = 'processing'
+            self.session_metadata[session_id]['processing_start_time'] = time.time()
+            
+            # 异步处理会话
+            Thread(target=self._process_session, args=(session_id, request_data), daemon=True).start()
+            
+            # 持久化队列状态
+            self._persist_queue_state()
+            
+            logger.info(f"Started processing session {session_id} from queue; {len(self.session_queue)} sessions remaining in queue")
+            
+    def _process_session(self, session_id, request_data):
+        """异步处理会话"""
+        try:
+            # 获取视频路径
+            video_path = request_data.path
+            
+            with self.autocast_context(), self.inference_lock:
+                # 对于所有设备类型，默认都将视频帧卸载到CPU，避免GPU内存碎片和泄露
+                offload_video_to_cpu = True
+                if hasattr(request_data, 'keep_frames_on_gpu') and request_data.keep_frames_on_gpu:
+                    offload_video_to_cpu = self.device.type != "cuda"
+                    
+                # 初始化会话状态
+                inference_state = self.predictor.init_state(
+                    video_path,
+                    offload_video_to_cpu=offload_video_to_cpu,
+                )
+                
+                # 保存会话状态
+                self.session_states[session_id] = {
+                    "canceled": False,
+                    "state": inference_state,
+                    "last_active_time": time.time(),
+                    "offload_video_to_cpu": offload_video_to_cpu
+                }
+                
+                # 更新处理时间统计
+                processing_time = time.time() - self.session_metadata[session_id]['processing_start_time']
+                self.session_metadata[session_id]['processing_time'] = processing_time
+                
+                # 更新平均处理时间（使用移动平均）
+                self.avg_processing_time = 0.7 * self.avg_processing_time + 0.3 * processing_time
+                
+                logger.info(f"Completed processing session {session_id}; Processing time: {processing_time:.2f}s; New avg time: {self.avg_processing_time:.2f}s")
+                
+        except Exception as e:
+            logger.error(f"Error processing session {session_id}: {e}")
+            # 从活跃会话中移除
+            with self.queue_lock:
+                if session_id in self.active_sessions:
+                    self.active_sessions.remove(session_id)
+                # 更新会话元数据
+                if session_id in self.session_metadata:
+                    self.session_metadata[session_id]['status'] = 'error'
+                    self.session_metadata[session_id]['error'] = str(e)
+        finally:
+            # 处理完成后，尝试处理队列中的下一个会话
+            self._process_queue()
 
     def start_session(self, request: StartSessionRequest) -> StartSessionResponse:
-        with self.autocast_context(), self.inference_lock:
+        # 生成会话 ID
+        if request.session_id:
+            session_id = request.session_id
+        else:
             session_id = str(uuid.uuid4())
-            # 对于所有设备类型，默认都将视频帧卸载到CPU，避免GPU内存碎片和泄露
-            # 只有在明确指定不卸载时才保留在GPU中
-            offload_video_to_cpu = True
-            if hasattr(request, 'keep_frames_on_gpu') and request.keep_frames_on_gpu:
-                offload_video_to_cpu = self.device.type != "cuda"
-                
-            inference_state = self.predictor.init_state(
-                request.path,
-                offload_video_to_cpu=offload_video_to_cpu,
-            )
-            self.session_states[session_id] = {
-                "canceled": False,
-                "state": inference_state,
-                "last_active_time": time.time(),  # 记录会话创建时间
-                "offload_video_to_cpu": offload_video_to_cpu  # 记录是否将视频帧卸载到CPU
+            
+        # 检查当前活跃会话数量
+        with self.queue_lock:
+            # 检查会话是否已存在
+            if session_id in self.session_metadata:
+                # 如果会话已存在且状态为处理中或已完成，直接返回当前状态
+                status = self.session_metadata[session_id]['status']
+                if status in ['processing', 'completed']:
+                    queue_position = 0
+                    estimated_wait_time = 0
+                    return StartSessionResponse(
+                        session_id=session_id,
+                        queued=(status == 'queued'),
+                        queue_position=queue_position,
+                        estimated_wait_time=estimated_wait_time
+                    )
+            
+            # 检查是否需要排队
+            need_queue = len(self.active_sessions) >= self.max_concurrent_sessions
+            
+            # 创建会话元数据
+            enqueue_time = time.time()
+            self.session_metadata[session_id] = {
+                'path': request.path,
+                'enqueue_time': enqueue_time,
+                'status': 'queued' if need_queue else 'processing',
+                'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
             }
             
-            # 记录当前内存使用情况
-            logger.info(f"Started new session {session_id}; {self.__get_session_stats()}")
-            return StartSessionResponse(session_id=session_id)
+            if need_queue:
+                # 将会话加入队列
+                self.session_queue.append((session_id, request, enqueue_time))
+                queue_position = len(self.session_queue)
+                # 估算等待时间（基于队列位置和平均处理时间）
+                estimated_wait_time = int(queue_position * self.avg_processing_time)
+                
+                # 持久化队列状态
+                self._persist_queue_state()
+                
+                logger.info(f"Session {session_id} queued at position {queue_position}; estimated wait time: {estimated_wait_time}s")
+                
+                return StartSessionResponse(
+                    session_id=session_id,
+                    queued=True,
+                    queue_position=queue_position,
+                    estimated_wait_time=estimated_wait_time
+                )
+            else:
+                # 直接处理会话
+                self.active_sessions.add(session_id)
+                self.session_metadata[session_id]['processing_start_time'] = enqueue_time
+                
+                # 异步处理会话
+                Thread(target=self._process_session, args=(session_id, request), daemon=True).start()
+                
+                # 持久化队列状态
+                self._persist_queue_state()
+                
+                logger.info(f"Started processing session {session_id} immediately; {self.__get_session_stats()}")
+                
+                return StartSessionResponse(
+                    session_id=session_id,
+                    queued=False,
+                    queue_position=0,
+                    estimated_wait_time=0
+                )
 
     def close_session(self, request: CloseSessionRequest) -> CloseSessionResponse:
-        is_successful = self.__clear_session_state(request.session_id)
+        session_id = request.session_id
+        
+        # 首先检查会话是否在队列中
+        with self.queue_lock:
+            # 从队列中移除会话（如果存在）
+            queue_updated = False
+            for i, (queued_id, _, _) in enumerate(self.session_queue):
+                if queued_id == session_id:
+                    self.session_queue.pop(i)
+                    queue_updated = True
+                    break
+            
+            # 从活跃会话集合中移除
+            if session_id in self.active_sessions:
+                self.active_sessions.remove(session_id)
+                
+            # 更新会话元数据
+            if session_id in self.session_metadata:
+                self.session_metadata[session_id]['status'] = 'completed'
+            
+            # 持久化队列状态
+            self._persist_queue_state()
+                
+            # 如果会话在队列中被移除，尝试处理下一个会话
+            if queue_updated:
+                logger.info(f"Removed session {session_id} from queue")
+                # 异步处理队列，避免在当前请求中阻塞
+                Thread(target=self._process_queue, daemon=True).start()
+        
+        # 清理会话状态
+        is_successful = self.__clear_session_state(session_id)
         return CloseSessionResponse(success=is_successful)
 
     def add_points(
@@ -500,6 +758,49 @@ class InferenceAPI:
         else:
             return {"device": self.device.type, "stats": "not available"}
     
+    def get_queue_status(self, request: QueueStatusRequest) -> QueueStatusResponse:
+        """获取会话的排队状态"""
+        session_id = request.session_id
+        
+        with self.queue_lock:
+            # 检查会话是否存在于元数据中
+            if session_id not in self.session_metadata:
+                return QueueStatusResponse(
+                    session_id=session_id,
+                    status='not_found',
+                    position=-1,
+                    estimated_wait_time=-1
+                )
+            
+            # 获取会话状态
+            status = self.session_metadata[session_id]['status']
+            
+            # 如果会话正在处理或已完成，则位置为0
+            if status in ['processing', 'completed', 'error']:
+                return QueueStatusResponse(
+                    session_id=session_id,
+                    status=status,
+                    position=0,
+                    estimated_wait_time=0
+                )
+            
+            # 如果会话在队列中，计算位置和预计等待时间
+            position = 0
+            for i, (queued_id, _, _) in enumerate(self.session_queue):
+                if queued_id == session_id:
+                    position = i + 1
+                    break
+            
+            # 估算等待时间
+            estimated_wait_time = int(position * self.avg_processing_time)
+            
+            return QueueStatusResponse(
+                session_id=session_id,
+                status='queued',
+                position=position,
+                estimated_wait_time=estimated_wait_time
+            )
+            
     def __get_session_stats(self):
         """Get a statistics string for live sessions and their GPU usage."""
         # print both the session ids and their video frame numbers
@@ -534,6 +835,10 @@ class InferenceAPI:
                 f"cannot close session {session_id} as it does not exist (it might have expired); "
                 f"{self.__get_session_stats()}"
             )
+            # 即使会话状态不存在，也要从会话元数据中移除
+            with self.queue_lock:
+                if session_id in self.session_metadata:
+                    self.session_metadata[session_id]['status'] = 'completed'
             return False
         else:
             # 获取清理前的内存统计

@@ -28,6 +28,8 @@ from data.data_types import (
     ClearPointsInVideoInput,
     CloseSession,
     CloseSessionInput,
+    QueueStatusInput,
+    QueueStatus,
     RemoveObjectInput,
     RLEMask,
     RLEMaskForObject,
@@ -46,6 +48,7 @@ from inference.data_types import (
     ClearPointsInFrameRequest,
     ClearPointsInVideoRequest,
     CloseSessionRequest,
+    QueueStatusRequest,
     RemoveObjectRequest,
     StartSessionRequest,
 )
@@ -146,6 +149,24 @@ class Mutation:
         )
         response = inference_api.close_session(request)
         return CloseSession(success=response.success)
+        
+    @strawberry.mutation
+    def get_queue_status(
+        self, input: QueueStatusInput, info: strawberry.Info
+    ) -> QueueStatus:
+        inference_api: InferenceAPI = info.context["inference_api"]
+
+        request = QueueStatusRequest(
+            type="queue_status",
+            session_id=input.session_id,
+        )
+        response = inference_api.get_queue_status(request)
+        return QueueStatus(
+            session_id=response.session_id,
+            status=response.status,
+            position=response.position,
+            estimated_wait_time=response.estimated_wait_time
+        )
 
     @strawberry.mutation
     def add_points(

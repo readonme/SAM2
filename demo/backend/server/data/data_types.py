@@ -152,3 +152,16 @@ class SessionExpiration:
     expiration_time: int
     max_expiration_time: int
     ttl: int
+
+
+@strawberry.input
+class QueueStatusInput:
+    session_id: str
+
+
+@strawberry.type
+class QueueStatus:
+    session_id: str
+    status: str  # 'queued', 'processing', 'completed', 'not_found', 'error'
+    position: int
+    estimated_wait_time: int
