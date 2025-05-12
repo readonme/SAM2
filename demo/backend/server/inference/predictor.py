@@ -115,6 +115,9 @@ class InferenceAPI:
         )
         self.inference_lock = Lock()
 
+        # 完成初始化后处理队列
+        self._process_queue()
+
     def autocast_context(self):
         if self.device.type == "cuda":
             return torch.autocast("cuda", dtype=torch.bfloat16)
@@ -141,39 +144,59 @@ class InferenceAPI:
     def _restore_queue_state(self):
         """从文件恢复排队中的会话"""
         try:
-            # 加载队列数据
-            loaded_queue = self.queue_manager.load_queue()
-            if loaded_queue:
-                # 恢复队列数据需要重新构建请求对象
-                restored_queue = []
-                for session_id, request_dict, enqueue_time in loaded_queue:
-                    # 根据请求类型构建不同的请求对象
-                    request_type = request_dict.get('type', '')
-                    
-                    if request_type == 'start_session':
-                        from inference.data_types import StartSessionRequest
-                        request = StartSessionRequest.from_dict(request_dict)
-                        
-                        # 创建会话元数据
-                        if session_id not in self.session_metadata:
-                            self.session_metadata[session_id] = {
-                                'path': request.path,
-                                'enqueue_time': enqueue_time,
-                                'status': 'queued',
-                                'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
-                            }
-                    else:
-                        # 如果无法识别请求类型，跳过该条记录
-                        logger.warning(f"无法识别的请求类型: {request_type}，跳过恢复")
-                        continue
-                    
-                    restored_queue.append((session_id, request, enqueue_time))
+            # 从文件加载队列数据
+            serialized_queue = self.queue_manager.load_queue()
+            
+            if not serialized_queue:
+                logger.info("没有可恢复的队列数据")
+                return
                 
-                self.session_queue = restored_queue
-                logger.info(f"已从文件恢复排队会话数据，共 {len(self.session_queue)} 条记录")
+            # 恢复队列和元数据
+            restored_queue = []
+            
+            for item in serialized_queue:
+                session_id = item.get('session_id')
+                request_type = item.get('request_type')
+                request_data = item.get('request_data', {})
+                enqueue_time = item.get('enqueue_time', time.time())
                 
-            # 恢复完成后，立即处理队列
-            self._process_queue()
+                # 根据请求类型创建相应的请求对象
+                if request_type == 'StartSessionRequest':
+                    # 恢复 StartSessionRequest
+                    request = StartSessionRequest(
+                        session_id=session_id,
+                        path=request_data.get('path', ''),
+                    )
+                    
+                    # 恢复视频元数据（如果有）
+                    if 'video_metadata' in request_data and request_data['video_metadata']:
+                        request.video_metadata = VideoMetadata(
+                            width=request_data['video_metadata'].get('width', 0),
+                            height=request_data['video_metadata'].get('height', 0),
+                            fps=request_data['video_metadata'].get('fps', 0),
+                            frame_count=request_data['video_metadata'].get('frame_count', 0),
+                        )
+                    
+                    # 恢复会话元数据
+                    if session_id not in self.session_metadata:
+                        self.session_metadata[session_id] = {
+                            'path': request.path,
+                            'enqueue_time': enqueue_time,
+                            'status': 'queued',
+                            'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
+                        }
+                else:
+                    # 如果无法识别请求类型，跳过该条记录
+                    logger.warning(f"无法识别的请求类型: {request_type}，跳过恢复")
+                    continue
+                
+                restored_queue.append((session_id, request, enqueue_time))
+            
+            self.session_queue = restored_queue
+            logger.info(f"已从文件恢复排队会话数据，共 {len(self.session_queue)} 条记录")
+            
+            # 注意：不在这里直接处理队列，而是在完全初始化后处理
+            # 在__init__方法结束时处理队列
             
         except Exception as e:
             logger.error(f"恢复队列状态失败: {e}")
