@@ -173,26 +173,34 @@ class InferenceAPI:
         """检查并清理过期的会话"""
         current_time = time.time()
         queue_updated = False
+        expired_sessions = []
             
+        # 首先获取需要清理的会话列表，减少锁的持有时间
         with self.cleanup_lock:
-            expired_sessions = []
             for session_id, session in list(self.session_states.items()):
                 # 检查会话是否已超时
                 if current_time - session.get('last_active_time', 0) > self.session_timeout:
                     expired_sessions.append(session_id)
+        
+        # 如果没有过期会话，直接返回
+        if not expired_sessions:
+            return
             
-            # 清理过期会话
-            for session_id in expired_sessions:
-                # 检查是否在队列中
-                with self.queue_lock:
-                    for i, (queued_id, _, _) in enumerate(self.session_queue):
-                        if queued_id == session_id:
-                            self.session_queue.pop(i)
-                            queue_updated = True
-                            break
-                
-                self.__clear_session_state(session_id, reason="timeout")
-                
+        # 清理过期会话
+        for session_id in expired_sessions:
+            # 检查是否在队列中，使用小粒度锁
+            with self.queue_lock:
+                for i, (queued_id, _, _) in enumerate(self.session_queue):
+                    if queued_id == session_id:
+                        self.session_queue.pop(i)
+                        queue_updated = True
+                        break
+            
+            # 在锁外清理会话状态
+            self.__clear_session_state(session_id, reason="timeout")
+        
+        # 更新最后清理时间并触发垃圾回收
+        with self.cleanup_lock:
             self.last_cleanup_time = current_time
             
             # 主动触发垃圾回收
@@ -207,8 +215,9 @@ class InferenceAPI:
             with self.queue_lock:
                 self._persist_queue_state()
             
-        # 处理队列中的会话
-        self._process_queue()
+        # 在锁外处理队列中的会话
+        if queue_updated:
+            self._process_queue()
         
     def _process_queue(self):
         """处理队列中的会话，如果有空闲资源则启动下一个会话"""
@@ -297,36 +306,39 @@ class InferenceAPI:
             session_id = request.session_id
         else:
             session_id = str(uuid.uuid4())
-            
-        # 检查当前活跃会话数量
+        
+        # 首先检查会话是否已存在，使用小粒度锁
+        need_queue = False
+        existing_status = None
+        enqueue_time = time.time()
+        
         with self.queue_lock:
             # 检查会话是否已存在
             if session_id in self.session_metadata:
-                # 如果会话已存在且状态为处理中或已完成，直接返回当前状态
-                status = self.session_metadata[session_id]['status']
-                if status in ['processing', 'completed']:
-                    queue_position = 0
-                    estimated_wait_time = 0
+                existing_status = self.session_metadata[session_id]['status']
+                if existing_status in ['processing', 'completed']:
+                    # 如果会话已存在且状态为处理中或已完成，直接返回当前状态
                     return StartSessionResponse(
                         session_id=session_id,
-                        queued=(status == 'queued'),
-                        queue_position=queue_position,
-                        estimated_wait_time=estimated_wait_time
+                        queued=(existing_status == 'queued'),
+                        queue_position=0,
+                        estimated_wait_time=0
                     )
             
             # 检查是否需要排队
             need_queue = len(self.active_sessions) >= self.max_concurrent_sessions
-            
-            # 创建会话元数据
-            enqueue_time = time.time()
-            self.session_metadata[session_id] = {
-                'path': request.path,
-                'enqueue_time': enqueue_time,
-                'status': 'queued' if need_queue else 'processing',
-                'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
-            }
-            
-            if need_queue:
+        
+        # 如果需要排队，将会话加入队列
+        if need_queue:
+            with self.queue_lock:
+                # 创建会话元数据
+                self.session_metadata[session_id] = {
+                    'path': request.path,
+                    'enqueue_time': enqueue_time,
+                    'status': 'queued',
+                    'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
+                }
+                
                 # 将会话加入队列
                 self.session_queue.append((session_id, request, enqueue_time))
                 queue_position = len(self.session_queue)
@@ -335,39 +347,46 @@ class InferenceAPI:
                 
                 # 队列已修改，触发持久化
                 self._persist_queue_state()
-                
-                logger.info(f"Session {session_id} queued at position {queue_position}; estimated wait time: {estimated_wait_time}s")
-                
-                return StartSessionResponse(
-                    session_id=session_id,
-                    queued=True,
-                    queue_position=queue_position,
-                    estimated_wait_time=estimated_wait_time
-                )
-            else:
-                # 直接处理会话
+            
+            logger.info(f"Session {session_id} queued at position {queue_position}; estimated wait time: {estimated_wait_time}s")
+            
+            return StartSessionResponse(
+                session_id=session_id,
+                queued=True,
+                queue_position=queue_position,
+                estimated_wait_time=estimated_wait_time
+            )
+        else:
+            # 直接处理会话，首先更新会话元数据
+            with self.queue_lock:
+                self.session_metadata[session_id] = {
+                    'path': request.path,
+                    'enqueue_time': enqueue_time,
+                    'processing_start_time': enqueue_time,
+                    'status': 'processing',
+                    'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
+                }
                 self.active_sessions.add(session_id)
-                self.session_metadata[session_id]['processing_start_time'] = enqueue_time
-                
-                # 异步处理会话
-                Thread(target=self._process_session, args=(session_id, request), daemon=True).start()
-                
-                logger.info(f"Started processing session {session_id} immediately; {self.__get_session_stats()}")
-                
-                return StartSessionResponse(
-                    session_id=session_id,
-                    queued=False,
-                    queue_position=0,
-                    estimated_wait_time=0
-                )
+            
+            # 在锁外启动异步处理线程
+            Thread(target=self._process_session, args=(session_id, request), daemon=True).start()
+            
+            logger.info(f"Started processing session {session_id} immediately; {self.__get_session_stats()}")
+            
+            return StartSessionResponse(
+                session_id=session_id,
+                queued=False,
+                queue_position=0,
+                estimated_wait_time=0
+            )
 
     def close_session(self, request: CloseSessionRequest) -> CloseSessionResponse:
         session_id = request.session_id
+        queue_updated = False
         
         # 首先检查会话是否在队列中
         with self.queue_lock:
             # 从队列中移除会话（如果存在）
-            queue_updated = False
             for i, (queued_id, _, _) in enumerate(self.session_queue):
                 if queued_id == session_id:
                     self.session_queue.pop(i)
@@ -386,8 +405,10 @@ class InferenceAPI:
             if queue_updated:
                 self._persist_queue_state()
                 logger.info(f"Removed session {session_id} from queue")
-                # 异步处理队列，避免在当前请求中阻塞
-                Thread(target=self._process_queue, daemon=True).start()
+        
+        # 在锁外启动异步处理队列线程
+        if queue_updated:
+            Thread(target=self._process_queue, daemon=True).start()
         
         # 清理会话状态
         is_successful = self.__clear_session_state(session_id)
@@ -742,6 +763,7 @@ class InferenceAPI:
         """获取会话的排队状态"""
         session_id = request.session_id
         
+        # 首先获取基本信息，如果会话不存在或不在队列中，可以快速返回
         with self.queue_lock:
             # 检查会话是否存在于元数据中
             if session_id not in self.session_metadata:
@@ -764,22 +786,26 @@ class InferenceAPI:
                     estimated_wait_time=0
                 )
             
-            # 如果会话在队列中，计算位置和预计等待时间
-            position = 0
-            for i, (queued_id, _, _) in enumerate(self.session_queue):
-                if queued_id == session_id:
-                    position = i + 1
-                    break
-            
-            # 估算等待时间
-            estimated_wait_time = int(position * self.avg_processing_time)
-            
-            return QueueStatusResponse(
-                session_id=session_id,
-                status='queued',
-                position=position,
-                estimated_wait_time=estimated_wait_time
-            )
+            # 如果会话在队列中，复制队列信息以便在锁外计算
+            queue_copy = [(q_id, None, None) for q_id, _, _ in self.session_queue]
+            avg_processing_time = self.avg_processing_time
+        
+        # 在锁外计算位置和等待时间
+        position = 0
+        for i, (queued_id, _, _) in enumerate(queue_copy):
+            if queued_id == session_id:
+                position = i + 1
+                break
+        
+        # 估算等待时间
+        estimated_wait_time = int(position * avg_processing_time)
+        
+        return QueueStatusResponse(
+            session_id=session_id,
+            status='queued',
+            position=position,
+            estimated_wait_time=estimated_wait_time
+        )
             
     def __get_session_stats(self):
         """Get a statistics string for live sessions and their GPU usage."""
