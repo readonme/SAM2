@@ -75,7 +75,9 @@ class StartSessionInput:
 @strawberry.type
 class StartSession:
     session_id: str
-
+    queued: bool = False  # 是否进入队列
+    queue_position: int = 0  # 队列位置
+ 
 
 @strawberry.input
 class PingInput:

@@ -5,6 +5,7 @@
 
 import hashlib
 import os
+import queue
 import shutil
 import tempfile
 from pathlib import Path
@@ -135,7 +136,7 @@ class Mutation:
 
         response = inference_api.start_session(request=request)
 
-        return StartSession(session_id=response.session_id)
+        return StartSession(session_id=response.session_id, queued=response.queued, queue_position=response.queue_position)
 
     @strawberry.mutation
     def close_session(
