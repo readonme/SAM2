@@ -426,8 +426,10 @@ class InferenceAPI:
                     break
             
             # 从活跃会话集合中移除
+            active_session_removed = False
             if session_id in self.active_sessions:
                 self.active_sessions.remove(session_id)
+                active_session_removed = True
                 logger.info(f"从活跃会话集合中移除会话 {session_id}，当前活跃会话数: {len(self.active_sessions)}")
                 
             # 更新会话元数据
@@ -442,8 +444,9 @@ class InferenceAPI:
                 logger.info(f"已从队列中移除会话 {session_id}")
         
         # 在锁外启动异步处理队列线程
-        if queue_updated:
-            logger.info(f"队列已更新，启动异步队列处理线程")
+        # 如果队列更新了或者从活跃会话中移除了会话，都需要触发队列处理
+        if queue_updated or active_session_removed:
+            logger.info(f"队列已更新或活跃会话已减少，启动异步队列处理线程")
             Thread(target=self._process_queue, daemon=True).start()
         
         # 清理会话状态
