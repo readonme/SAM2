@@ -302,22 +302,29 @@ class InferenceAPI:
 
     def start_session(self, request: StartSessionRequest) -> StartSessionResponse:
         # 生成会话 ID
+        logger.info(f"开始处理会话启动请求")
         if request.session_id:
             session_id = request.session_id
+            logger.info(f"使用客户端提供的会话ID: {session_id}")
         else:
             session_id = str(uuid.uuid4())
+            logger.info(f"生成新的会话ID: {session_id}")
         
         # 首先检查会话是否已存在，使用小粒度锁
         need_queue = False
         existing_status = None
         enqueue_time = time.time()
+        logger.info(f"会话 {session_id} 请求时间: {enqueue_time}")
         
         with self.queue_lock:
+            logger.info(f"获取队列锁，检查会话 {session_id} 状态")
             # 检查会话是否已存在
             if session_id in self.session_metadata:
                 existing_status = self.session_metadata[session_id]['status']
+                logger.info(f"会话 {session_id} 已存在，当前状态: {existing_status}")
                 if existing_status in ['processing', 'completed']:
                     # 如果会话已存在且状态为处理中或已完成，直接返回当前状态
+                    logger.info(f"会话 {session_id} 已在处理中或已完成，直接返回当前状态")
                     return StartSessionResponse(
                         session_id=session_id,
                         queued=(existing_status == 'queued'),
@@ -327,10 +334,13 @@ class InferenceAPI:
             
             # 检查是否需要排队
             need_queue = len(self.active_sessions) >= self.max_concurrent_sessions
+            logger.info(f"当前活跃会话数: {len(self.active_sessions)}/{self.max_concurrent_sessions}，是否需要排队: {need_queue}")
         
         # 如果需要排队，将会话加入队列
         if need_queue:
+            logger.info(f"会话 {session_id} 需要排队，准备加入队列")
             with self.queue_lock:
+                logger.info(f"获取队列锁，将会话 {session_id} 加入队列")
                 # 创建会话元数据
                 self.session_metadata[session_id] = {
                     'path': request.path,
@@ -338,17 +348,20 @@ class InferenceAPI:
                     'status': 'queued',
                     'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
                 }
+                logger.info(f"创建会话 {session_id} 元数据，视频路径: {request.path}")
                 
                 # 将会话加入队列
                 self.session_queue.append((session_id, request, enqueue_time))
                 queue_position = len(self.session_queue)
                 # 估算等待时间（基于队列位置和平均处理时间）
                 estimated_wait_time = int(queue_position * self.avg_processing_time)
+                logger.info(f"会话 {session_id} 加入队列，位置: {queue_position}，估计等待时间: {estimated_wait_time}秒")
                 
                 # 队列已修改，触发持久化
+                logger.info(f"触发队列状态持久化")
                 self._persist_queue_state()
             
-            logger.info(f"Session {session_id} queued at position {queue_position}; estimated wait time: {estimated_wait_time}s")
+            logger.info(f"会话 {session_id} 已成功排队，位置: {queue_position}，估计等待时间: {estimated_wait_time}秒")
             
             return StartSessionResponse(
                 session_id=session_id,
@@ -357,8 +370,10 @@ class InferenceAPI:
                 estimated_wait_time=estimated_wait_time
             )
         else:
+            logger.info(f"会话 {session_id} 无需排队，准备立即处理")
             # 直接处理会话，首先更新会话元数据
             with self.queue_lock:
+                logger.info(f"获取队列锁，更新会话 {session_id} 元数据")
                 self.session_metadata[session_id] = {
                     'path': request.path,
                     'enqueue_time': enqueue_time,
@@ -366,12 +381,15 @@ class InferenceAPI:
                     'status': 'processing',
                     'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
                 }
+                logger.info(f"创建会话 {session_id} 元数据，视频路径: {request.path}")
                 self.active_sessions.add(session_id)
+                logger.info(f"将会话 {session_id} 添加到活跃会话集合，当前活跃会话数: {len(self.active_sessions)}")
             
             # 在锁外启动异步处理线程
+            logger.info(f"启动异步线程处理会话 {session_id}")
             Thread(target=self._process_session, args=(session_id, request), daemon=True).start()
             
-            logger.info(f"Started processing session {session_id} immediately; {self.__get_session_stats()}")
+            logger.info(f"会话 {session_id} 已开始处理; {self.__get_session_stats()}")
             
             return StartSessionResponse(
                 session_id=session_id,
@@ -384,34 +402,45 @@ class InferenceAPI:
         session_id = request.session_id
         queue_updated = False
         
+        logger.info(f"开始关闭会话 {session_id}")
+        
         # 首先检查会话是否在队列中
+        logger.info(f"检查会话 {session_id} 是否在队列中")
         with self.queue_lock:
+            logger.info(f"获取队列锁，准备清理会话 {session_id}")
             # 从队列中移除会话（如果存在）
             for i, (queued_id, _, _) in enumerate(self.session_queue):
                 if queued_id == session_id:
                     self.session_queue.pop(i)
                     queue_updated = True
+                    logger.info(f"从队列中移除会话 {session_id}，位置: {i}")
                     break
             
             # 从活跃会话集合中移除
             if session_id in self.active_sessions:
                 self.active_sessions.remove(session_id)
+                logger.info(f"从活跃会话集合中移除会话 {session_id}，当前活跃会话数: {len(self.active_sessions)}")
                 
             # 更新会话元数据
             if session_id in self.session_metadata:
                 self.session_metadata[session_id]['status'] = 'completed'
+                logger.info(f"更新会话 {session_id} 元数据状态为 'completed'")
             
             # 队列已修改，触发持久化
             if queue_updated:
+                logger.info(f"队列已更新，触发队列状态持久化")
                 self._persist_queue_state()
-                logger.info(f"Removed session {session_id} from queue")
+                logger.info(f"已从队列中移除会话 {session_id}")
         
         # 在锁外启动异步处理队列线程
         if queue_updated:
+            logger.info(f"队列已更新，启动异步队列处理线程")
             Thread(target=self._process_queue, daemon=True).start()
         
         # 清理会话状态
+        logger.info(f"开始清理会话 {session_id} 的状态")
         is_successful = self.__clear_session_state(session_id)
+        logger.info(f"会话 {session_id} 清理状态 {'成功' if is_successful else '失败'}")
         return CloseSessionResponse(success=is_successful)
 
     def add_points(
