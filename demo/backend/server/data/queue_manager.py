@@ -21,11 +21,11 @@ class QueueManager:
         初始化队列管理器
         
         Args:
-            queue_dir: 队列数据存储目录，默认为 data/queue
+            queue_dir: 队列数据存储目录，默认为 /data/queue
         """
         if queue_dir is None:
             # 默认使用 data/queue 目录
-            self.queue_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "queue"
+            self.queue_dir = Path("/data/queue")
         else:
             self.queue_dir = Path(queue_dir)
             
