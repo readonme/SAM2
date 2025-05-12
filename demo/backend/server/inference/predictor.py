@@ -145,23 +145,19 @@ class InferenceAPI:
         """从文件恢复排队中的会话"""
         try:
             # 从文件加载队列数据
-            serialized_queue = self.queue_manager.load_queue()
+            loaded_queue = self.queue_manager.load_queue()
             
-            if not serialized_queue:
+            if not loaded_queue:
                 logger.info("没有可恢复的队列数据")
                 return
                 
             # 恢复队列和元数据
             restored_queue = []
             
-            for item in serialized_queue:
-                session_id = item.get('session_id')
-                request_type = item.get('request_type')
-                request_data = item.get('request_data', {})
-                enqueue_time = item.get('enqueue_time', time.time())
-                
-                # 根据请求类型创建相应的请求对象
-                if request_type == 'StartSessionRequest':
+            for session_id, request_data, enqueue_time in loaded_queue:
+                # 根据请求数据创建相应的请求对象
+                # 检查请求数据类型
+                if isinstance(request_data, dict) and 'path' in request_data:
                     # 恢复 StartSessionRequest
                     request = StartSessionRequest(
                         session_id=session_id,
@@ -170,12 +166,14 @@ class InferenceAPI:
                     
                     # 恢复视频元数据（如果有）
                     if 'video_metadata' in request_data and request_data['video_metadata']:
-                        request.video_metadata = VideoMetadata(
-                            width=request_data['video_metadata'].get('width', 0),
-                            height=request_data['video_metadata'].get('height', 0),
-                            fps=request_data['video_metadata'].get('fps', 0),
-                            frame_count=request_data['video_metadata'].get('frame_count', 0),
-                        )
+                        video_meta = request_data['video_metadata']
+                        if isinstance(video_meta, dict):
+                            request.video_metadata = VideoMetadata(
+                                width=video_meta.get('width', 0),
+                                height=video_meta.get('height', 0),
+                                fps=video_meta.get('fps', 0),
+                                frame_count=video_meta.get('frame_count', 0),
+                            )
                     
                     # 恢复会话元数据
                     if session_id not in self.session_metadata:
@@ -185,12 +183,13 @@ class InferenceAPI:
                             'status': 'queued',
                             'video_metadata': request.video_metadata if hasattr(request, 'video_metadata') else None
                         }
+                        
+                    # 添加到恢复队列
+                    restored_queue.append((session_id, request, enqueue_time))
                 else:
                     # 如果无法识别请求类型，跳过该条记录
-                    logger.warning(f"无法识别的请求类型: {request_type}，跳过恢复")
+                    logger.warning(f"无法识别的请求数据格式: {request_data}，跳过恢复")
                     continue
-                
-                restored_queue.append((session_id, request, enqueue_time))
             
             self.session_queue = restored_queue
             logger.info(f"已从文件恢复排队会话数据，共 {len(self.session_queue)} 条记录")
@@ -200,6 +199,8 @@ class InferenceAPI:
             
         except Exception as e:
             logger.error(f"恢复队列状态失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
     
     def _check_and_cleanup_sessions(self, force=False):
         """检查并清理过期的会话"""
