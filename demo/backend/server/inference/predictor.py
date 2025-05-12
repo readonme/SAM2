@@ -160,6 +160,7 @@ class InferenceAPI:
                 if isinstance(request_data, dict) and 'path' in request_data:
                     # 恢复 StartSessionRequest
                     request = StartSessionRequest(
+                        type="start_session",  # 添加必需的type参数
                         session_id=session_id,
                         path=request_data.get('path', ''),
                     )
