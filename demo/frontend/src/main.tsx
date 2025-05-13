@@ -16,6 +16,10 @@
 import App from '@/App.tsx';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom/client';
+import {version} from '../package.json';
+
+// eslint-disable-next-line no-console
+console.log('version', version);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
