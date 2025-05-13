@@ -56,9 +56,10 @@ class InferenceAPI:
         self.session_timeout = 300  # 会话超时时间（秒）
         self.cleanup_interval = 300  # 清理检查间隔（秒）
         self.last_cleanup_time = time.time()
+        self.cleanup_lock = Lock()
         
         # 会话队列相关配置
-        self.max_concurrent_sessions = 10  # 最大并发会话数
+        self.max_concurrent_sessions = 2  # 最大并发会话数
         self.session_queue = []  # 等待处理的会话队列 [(session_id, request_data, enqueue_time)]
         self.queue_lock = Lock()  # 队列锁
         self.active_sessions = set()  # 当前活跃的会话ID集合
@@ -209,61 +210,67 @@ class InferenceAPI:
         expired_sessions = []
         
         logger.info(f"开始检查会话超时状态，当前时间: {current_time}")
-        logger.info(f"当前活跃会话数: {len(self.session_states)}, 队列中会话数: {len(self.session_queue)}")
+        logger.info(f"当前有 {len(self.session_states)} 个会话状态，{len(self.active_sessions)} 个活跃会话，{len(self.session_queue)} 个排队会话")
             
-        # 获取需要清理的会话列表
-        for session_id, session in list(self.session_states.items()):
-            # 检查会话是否已超时
-            last_active_time = session.get('last_active_time', 0)
-            inactive_duration = current_time - last_active_time
-            if inactive_duration > self.session_timeout:
-                expired_sessions.append(session_id)
-                logger.info(f"发现超时会话: {session_id}, 上次活动时间: {last_active_time}, 不活跃时长: {inactive_duration:.2f}秒")
+        # 首先获取需要清理的会话列表，减少锁的持有时间
+        with self.cleanup_lock:
+            logger.info("获取清理锁，检查超时会话")
+            for session_id, session in list(self.session_states.items()):
+                # 检查会话是否已超时
+                last_active_time = session.get('last_active_time', 0)
+                inactive_time = current_time - last_active_time
+                if inactive_time > self.session_timeout:
+                    expired_sessions.append(session_id)
+                    logger.info(f"会话 {session_id} 已超时，上次活动时间: {last_active_time}，不活动时间: {inactive_time:.2f}秒")
         
         # 如果没有过期会话，直接返回
         if not expired_sessions:
-            logger.info("没有发现超时会话，清理检查完成")
+            logger.info("没有发现超时会话，清理结束")
             return
         
-        logger.info(f"开始清理 {len(expired_sessions)} 个超时会话")
+        logger.info(f"发现 {len(expired_sessions)} 个超时会话，开始清理")
             
         # 清理过期会话
         for session_id in expired_sessions:
+            logger.info(f"清理超时会话: {session_id}")
             # 检查是否在队列中，使用小粒度锁
             with self.queue_lock:
+                logger.info(f"获取队列锁，检查会话 {session_id} 是否在队列中")
                 for i, (queued_id, _, _) in enumerate(self.session_queue):
                     if queued_id == session_id:
                         self.session_queue.pop(i)
                         queue_updated = True
-                        logger.info(f"从队列中移除超时会话: {session_id}, 位置: {i}")
+                        logger.info(f"从队列中移除超时会话 {session_id}，位置: {i}")
                         break
             
             # 在锁外清理会话状态
-            logger.info(f"开始清理会话 {session_id} 的状态")
+            logger.info(f"清理会话 {session_id} 的状态")
             self.__clear_session_state(session_id, reason="timeout")
         
         # 更新最后清理时间并触发垃圾回收
-        self.last_cleanup_time = current_time
-        logger.info(f"更新最后清理时间为: {current_time}")
-        
-        # 主动触发垃圾回收
-        logger.info("开始触发垃圾回收")
-        gc.collect()
-        if self.device.type == "cuda":
-            logger.info("清理CUDA缓存")
-            torch.cuda.empty_cache()
+        with self.cleanup_lock:
+            logger.info("获取清理锁，更新最后清理时间并触发垃圾回收")
+            self.last_cleanup_time = current_time
             
-        logger.info(f"会话清理完成。已移除 {len(expired_sessions)} 个超时会话; {self.__get_session_stats()}")
+            # 主动触发垃圾回收
+            logger.info("触发垃圾回收")
+            gc.collect()
+            if self.device.type == "cuda":
+                logger.info("清理CUDA缓存")
+                torch.cuda.empty_cache()
+                
+            logger.info(f"会话清理完成。已移除 {len(expired_sessions)} 个超时会话; {self.__get_session_stats()}")
         
         # 如果队列有更新，持久化队列状态
         if queue_updated:
-            logger.info("队列已更新，开始持久化队列状态")
+            logger.info("队列已更新，准备持久化队列状态")
             with self.queue_lock:
+                logger.info("获取队列锁，持久化队列状态")
                 self._persist_queue_state(already_has_lock=True)
             
         # 在锁外处理队列中的会话
         if queue_updated:
-            logger.info("开始处理队列中的会话")
+            logger.info("队列已更新，开始处理队列")
             self._process_queue()
         
     def _process_queue(self):
