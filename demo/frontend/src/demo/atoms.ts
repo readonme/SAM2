@@ -26,7 +26,9 @@ import {
   StreamingState,
 } from '@/common/tracker/Tracker';
 import type {DataArray} from '@/jscocotools/mask';
-import {atom} from 'jotai';
+import {atom, createStore} from 'jotai';
+
+export const globalStore = createStore();
 
 export type VideoData = {
   path: string;

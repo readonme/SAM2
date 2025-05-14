@@ -19,6 +19,7 @@ import {
   AddPointsEvent,
   ClearPointsInVideoEvent,
   SessionStartFailedEvent,
+  SessionStartQueueEvent,
   SessionStartedEvent,
   StreamingCompletedEvent,
   StreamingStartedEvent,
@@ -50,6 +51,12 @@ export type StartSessionRequest = Request<
   'startSession',
   {
     videoUrl: string;
+  }
+>;
+export type StartSessionQueueRequest = Request<
+  'startSessionQueue',
+  {
+    queuePosition: number;
   }
 >;
 export type CloseSessionRequest = Request<'closeSession', unknown>;
@@ -89,6 +96,7 @@ export type LogAnnotationsRequest = Request<'logAnnotations', unknown>;
 export type TrackerRequest =
   | InitializeTrackerRequest
   | StartSessionRequest
+  | StartSessionQueueRequest
   | CloseSessionRequest
   | CreateTrackletRequest
   | DeleteTrackletRequest
@@ -111,6 +119,11 @@ export type SessionStartedResponse = Request<
 export type SessionStartFailedResponse = Request<
   'sessionStartFailed',
   SessionStartFailedEvent
+>;
+
+export type SessionStartQueueResponse = Request<
+  'sessionStartQueue',
+  SessionStartQueueEvent
 >;
 
 export type TrackletCreatedResponse = Request<
@@ -152,6 +165,7 @@ export type StreamingStateUpdateResponse = Request<
 
 export type TrackerResponse =
   | SessionStartedResponse
+  | SessionStartQueueResponse
   | SessionStartFailedResponse
   | TrackletCreatedResponse
   | TrackletsUpdatedResponse

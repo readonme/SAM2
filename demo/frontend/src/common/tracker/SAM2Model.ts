@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {generateThumbnail} from '@/common/components/video/editor/VideoEditorUtils';
 import VideoWorkerContext from '@/common/components/video/VideoWorkerContext';
@@ -38,6 +40,7 @@ import {TrackerOptions} from '@/common/tracker/Trackers';
 import {
   ClearPointsInVideoResponse,
   SessionStartFailedResponse,
+  SessionStartQueueResponse,
   SessionStartedResponse,
   StreamingCompletedResponse,
   StreamingStartedResponse,
@@ -63,6 +66,7 @@ import {THEME_COLORS} from '@/theme/colors';
 import invariant from 'invariant';
 import {IEnvironment, commitMutation, graphql} from 'relay-runtime';
 import {logButtonClick} from '../apis/report';
+import {SAM2ModelGetQueueStatusMutation} from './__generated__/SAM2ModelGetQueueStatusMutation.graphql';
 
 type Options = Pick<TrackerOptions, 'inferenceEndpoint'>;
 
@@ -117,6 +121,43 @@ export class SAM2Model extends Tracker {
     this._maskCtx = maskCtx;
   }
 
+  private getQueueStatus(sessionId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        const refetch = () => {
+          commitMutation<SAM2ModelGetQueueStatusMutation>(this._environment, {
+            mutation: graphql`
+              mutation SAM2ModelGetQueueStatusMutation(
+                $input: QueueStatusInput!
+              ) {
+                getQueueStatus(input: $input) {
+                  sessionId
+                  position
+                }
+              }
+            `,
+            variables: {input: {sessionId}},
+            onCompleted: response => {
+              this._sendResponse<SessionStartQueueResponse>(
+                'sessionStartQueue',
+                {queuePosition: response.getQueueStatus.position},
+              );
+              if (response.getQueueStatus.position === 0) {
+                resolve();
+              } else {
+                setTimeout(refetch, 3000);
+              }
+            },
+            onError: reject,
+          });
+        };
+        refetch();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   public startSession(videoPath: string): Promise<void> {
     // Reset streaming state. Force update with the true flag to make sure the
     // UI updates its state.
@@ -129,6 +170,8 @@ export class SAM2Model extends Tracker {
             mutation SAM2ModelStartSessionMutation($input: StartSessionInput!) {
               startSession(input: $input) {
                 sessionId
+                queuePosition
+                queued
               }
             }
           `,
@@ -137,8 +180,8 @@ export class SAM2Model extends Tracker {
               path: videoPath,
             },
           },
-          onCompleted: response => {
-            const {sessionId} = response.startSession;
+          onCompleted: async response => {
+            const {sessionId, queued} = response.startSession;
             this._session.id = sessionId;
 
             this._sendResponse<SessionStartedResponse>('sessionStarted', {
@@ -151,6 +194,11 @@ export class SAM2Model extends Tracker {
 
             // Make an empty tracklet
             this.createTracklet();
+
+            if (queued) {
+              await this.getQueueStatus(sessionId);
+            }
+
             resolve();
           },
           onError: error => {

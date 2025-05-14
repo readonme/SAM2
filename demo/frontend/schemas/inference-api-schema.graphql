@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Modified by Real Matrix in 2025
 
 input AddPointsInput {
   sessionId: String!
@@ -54,6 +56,7 @@ input CloseSessionInput {
 type Mutation {
   startSession(input: StartSessionInput!): StartSession!
   closeSession(input: CloseSessionInput!): CloseSession!
+  getQueueStatus(input: QueueStatusInput!): GetQueueStatus!
   addPoints(input: AddPointsInput!): RLEMaskListOnFrame!
   clearPointsInFrame(input: ClearPointsInFrameInput!): RLEMaskListOnFrame!
   clearPointsInVideo(input: ClearPointsInVideoInput!): ClearPointsInVideo!
@@ -69,6 +72,16 @@ input PingInput {
 
 type Pong {
   success: Boolean!
+}
+
+input QueueStatusInput {
+  sessionId: String!
+}
+
+type GetQueueStatus {
+  sessionId: String!
+  status: String!
+  position: Int!
 }
 
 type Query {
@@ -98,6 +111,8 @@ input RemoveObjectInput {
 
 type StartSession {
   sessionId: String!
+  queuePosition: Int!
+  queued: Boolean!
 }
 
 input StartSessionInput {
