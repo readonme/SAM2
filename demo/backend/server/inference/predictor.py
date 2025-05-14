@@ -206,10 +206,11 @@ class InferenceAPI:
     def _check_and_cleanup_sessions(self, force=False):
         """检查并清理过期的会话"""
         current_time = time.time()
+        current_time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(current_time))
         queue_updated = False
         expired_sessions = []
         
-        logger.info(f"开始检查会话超时状态，当前时间: {current_time}")
+        logger.info(f"开始检查会话超时状态，当前时间: {current_time_str}")
         logger.info(f"当前有 {len(self.session_states)} 个会话状态，{len(self.active_sessions)} 个活跃会话，{len(self.session_queue)} 个排队会话")
             
         # 首先获取需要清理的会话列表，减少锁的持有时间
@@ -218,10 +219,16 @@ class InferenceAPI:
             for session_id, session in list(self.session_states.items()):
                 # 检查会话是否已超时
                 last_active_time = session.get('last_active_time', 0)
+                last_active_time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_active_time)) if last_active_time > 0 else "无活动记录"
                 inactive_time = current_time - last_active_time
+                inactive_minutes = inactive_time / 60
+                
                 if inactive_time > self.session_timeout:
                     expired_sessions.append(session_id)
-                    logger.info(f"会话 {session_id} 已超时，上次活动时间: {last_active_time}，不活动时间: {inactive_time:.2f}秒")
+                    logger.info(f"会话 {session_id} 已超时，上次活动时间: {last_active_time_str}，不活动时间: {inactive_minutes:.1f}分钟")
+                else:
+                    remaining_minutes = (self.session_timeout - inactive_time) / 60
+                    logger.info(f"会话 {session_id} 正常，上次活动时间: {last_active_time_str}，不活动时间: {inactive_minutes:.1f}分钟，距离超时还有 {remaining_minutes:.1f}分钟")
         
         # 如果没有过期会话，直接返回
         if not expired_sessions:
