@@ -236,12 +236,20 @@ class InferenceAPI:
             # 检查是否在队列中，使用小粒度锁
             with self.queue_lock:
                 logger.info(f"获取队列锁，检查会话 {session_id} 是否在队列中")
+                # 检查并从队列中移除
                 for i, (queued_id, _, _) in enumerate(self.session_queue):
                     if queued_id == session_id:
                         self.session_queue.pop(i)
                         queue_updated = True
                         logger.info(f"从队列中移除超时会话 {session_id}，位置: {i}")
                         break
+                
+                # 从活跃会话集合中移除
+                if session_id in self.active_sessions:
+                    self.active_sessions.remove(session_id)
+                    logger.info(f"从活跃会话集合中移除超时会话 {session_id}")
+                    # 如果从活跃会话中移除，也需要触发队列处理
+                    queue_updated = True
             
             # 在锁外清理会话状态
             logger.info(f"清理会话 {session_id} 的状态")
