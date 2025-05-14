@@ -105,6 +105,8 @@ export class SAM2Model extends Tracker {
 
   private _stats?: Stats;
 
+  private _queueStatusTimer?: NodeJS.Timeout;
+
   constructor(
     context: VideoWorkerContext,
     options: Options = {
@@ -122,6 +124,8 @@ export class SAM2Model extends Tracker {
   }
 
   private getQueueStatus(sessionId: string): Promise<void> {
+    clearTimeout(this._queueStatusTimer);
+
     return new Promise((resolve, reject) => {
       try {
         const refetch = () => {
@@ -145,7 +149,7 @@ export class SAM2Model extends Tracker {
               if (response.getQueueStatus.position === 0) {
                 resolve();
               } else {
-                setTimeout(refetch, 3000);
+                this._queueStatusTimer = setTimeout(refetch, 3000);
               }
             },
             onError: reject,
