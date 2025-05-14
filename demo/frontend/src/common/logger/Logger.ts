@@ -12,6 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Modified by Real Matrix in 2025
  */
 import {logButtonClick} from '../apis/report';
 import {LOG_LEVEL} from './LogEnvironment';
@@ -47,13 +49,26 @@ export class ConsoleLogger implements Logger {
     this.error = (message?: unknown, ...optionalParams: unknown[]) => {
       // eslint-disable-next-line no-console
       console.error(message, ...optionalParams);
-      // report to server
-      logButtonClick({
-        button: 'error',
-        extra: JSON.stringify({
-          error: message ?? 'Unknown error',
-        }),
-      });
+      try {
+        // report to server
+        if (
+          !(
+            typeof message === 'object' &&
+            message !== null &&
+            !Array.isArray(message) &&
+            Object.keys(message).length === 0
+          )
+        ) {
+          logButtonClick({
+            button: 'error',
+            extra: JSON.stringify({
+              error: message ?? 'Unknown error',
+            }),
+          });
+        }
+      } catch {
+        return;
+      }
     };
 
     if (level === 'error') {

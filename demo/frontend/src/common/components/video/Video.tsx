@@ -26,6 +26,7 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import {Button} from 'react-daisyui';
 
@@ -39,6 +40,7 @@ import useResizeObserver from 'use-resize-observer';
 import UploadBackgroundButton from '../button/UploadBackgroundButton';
 import VideoLoadingOverlay from './VideoLoadingOverlay';
 import {
+  SessionStartQueueEvent,
   StreamingStateUpdateEvent,
   VideoWorkerEventMap,
 } from './VideoWorkerBridge';
@@ -147,6 +149,7 @@ export default forwardRef<VideoRef, Props>(function Video(
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom);
   const [isVideoLoading, setIsVideoLoading] = useAtom(isVideoLoadingAtom);
+  const [position, setPosition] = useState(0);
 
   const bridge = useVideoWorker(src, canvasRef, {
     createVideoWorker,
@@ -316,6 +319,10 @@ export default forwardRef<VideoRef, Props>(function Video(
       setIsVideoLoading(false);
     }
 
+    function onSessionStartQueue(data: SessionStartQueueEvent) {
+      setPosition(data.queuePosition);
+    }
+
     window.addEventListener('focus', onFocus);
     window.addEventListener('visibilitychange', onVisibilityChange);
     bridge.addEventListener('error', onError);
@@ -324,6 +331,7 @@ export default forwardRef<VideoRef, Props>(function Video(
     bridge.addEventListener('streamingStateUpdate', onStreamingDone);
     bridge.addEventListener('loadstart', onLoadStart);
     bridge.addEventListener('decode', onDecodeStart);
+    bridge.addEventListener('sessionStartQueue', onSessionStartQueue);
     return () => {
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('visibilitychange', onVisibilityChange);
@@ -333,6 +341,7 @@ export default forwardRef<VideoRef, Props>(function Video(
       bridge.removeEventListener('streamingStateUpdate', onStreamingDone);
       bridge.removeEventListener('loadstart', onLoadStart);
       bridge.removeEventListener('decode', onDecodeStart);
+      bridge.removeEventListener('sessionStartQueue', onSessionStartQueue);
     };
   }, [bridge, reportError, setIsPlaying, setIsVideoLoading]);
 
@@ -341,7 +350,10 @@ export default forwardRef<VideoRef, Props>(function Video(
       {...stylex.props(containerStyle ?? styles.container)}
       ref={resizeObserverRef}>
       <div {...stylex.props(styles.canvasContainer)}>
-        {(isVideoLoading || loading) && <VideoLoadingOverlay />}
+        <VideoLoadingOverlay
+          position={position}
+          loading={isVideoLoading || loading}
+        />
         <canvas
           ref={canvasRef}
           {...stylex.props(canvasStyle)}

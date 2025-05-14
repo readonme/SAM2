@@ -33,6 +33,7 @@ import {
   LogAnnotationsRequest,
   SessionStartFailedResponse,
   SessionStartedResponse,
+  StartSessionQueueRequest,
   StartSessionRequest,
   StreamMasksRequest,
   StreamingStateUpdateResponse,
@@ -106,6 +107,10 @@ export interface SessionStartedEvent {
   sessionId: string;
 }
 
+export interface SessionStartQueueEvent {
+  queuePosition: number;
+}
+
 export interface SessionStartFailedEvent {}
 
 export interface TrackletCreatedEvent {
@@ -154,6 +159,7 @@ export interface VideoWorkerEventMap {
   filmstrip: FilmstripEvent;
   frameUpdate: FrameUpdateEvent;
   sessionStarted: SessionStartedEvent;
+  sessionStartQueue: SessionStartQueueEvent;
   sessionStartFailed: SessionStartFailedEvent;
   trackletCreated: TrackletCreatedEvent;
   trackletsUpdated: TrackletsEvent;
@@ -234,6 +240,11 @@ export default class VideoWorkerBridge extends EventEmitter<VideoWorkerEventMap>
             break;
           case 'sessionStarted':
             this._sessionId = event.data.sessionId;
+            break;
+          case 'sessionStartQueue':
+            this.sendRequest<StartSessionQueueRequest>('startSessionQueue', {
+              queuePosition: event.data.queuePosition,
+            });
             break;
         }
         this.trigger(event.data.action, event.data);

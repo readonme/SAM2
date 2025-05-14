@@ -40,6 +40,7 @@ input CloseSessionInput {
 type Mutation {
   startSession(input: StartSessionInput!): StartSession!
   closeSession(input: CloseSessionInput!): CloseSession!
+  getQueueStatus(input: QueueStatusInput!): GetQueueStatus!
   addPoints(input: AddPointsInput!): RLEMaskListOnFrame!
   clearPointsInFrame(input: ClearPointsInFrameInput!): RLEMaskListOnFrame!
   clearPointsInVideo(input: ClearPointsInVideoInput!): ClearPointsInVideo!
@@ -65,6 +66,16 @@ input PingInput {
 
 type Pong {
   success: Boolean!
+}
+
+input QueueStatusInput {
+  sessionId: String!
+}
+
+type GetQueueStatus {
+  sessionId: String!
+  status: String!
+  position: Int!
 }
 
 type Query {
@@ -114,6 +125,8 @@ input RemoveObjectInput {
 
 type StartSession {
   sessionId: String!
+  queuePosition: Int!
+  queued: Boolean!
 }
 
 input StartSessionInput {
