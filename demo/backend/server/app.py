@@ -75,7 +75,7 @@ def session_cleanup_thread():
             # 调用清理方法
             inference_api._check_and_cleanup_sessions(force=True)
             # 每5分钟执行一次清理
-            time.sleep(300)
+            time.sleep(60)
         except Exception as e:
             logger.error(f"Error in session cleanup thread: {e}")
             # 即使出错也继续运行
